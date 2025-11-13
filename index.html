@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top Service - Sistema de Gestão</title>
+    <link rel="stylesheet" href="styles/main.css">
+</head>
+<body>
+    <div class="container">
+        <!-- SIDEBAR -->
+        <nav class="sidebar">
+            <div class="logo">
+                <h2>🏢 Top Service</h2>
+                <small>Sistema de Gestão</small>
+            </div>
+            
+            <ul class="nav-links">
+                <li class="nav-item active" data-page="dashboard">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-text">Dashboard</span>
+                </li>
+                <li class="nav-item" data-page="ponto">
+                    <span class="nav-icon">🕒</span>
+                    <span class="nav-text">Registrar Ponto</span>
+                </li>
+                <li class="nav-item" data-page="manual">
+                    <span class="nav-icon">✏️</span>
+                    <span class="nav-text">Marcação Manual</span>
+                </li>
+                <li class="nav-item" data-page="funcionarios">
+                    <span class="nav-icon">👥</span>
+                    <span class="nav-text">Funcionários</span>
+                </li>
+                <li class="nav-item" data-page="departamentos">
+                    <span class="nav-icon">🏢</span>
+                    <span class="nav-text">Departamentos</span>
+                </li>
+                <li class="nav-item" data-page="afastamentos">
+                    <span class="nav-icon">🏖️</span>
+                    <span class="nav-text">Afastamentos</span>
+                </li>
+                <li class="nav-item" data-page="relatorios">
+                    <span class="nav-icon">📈</span>
+                    <span class="nav-text">Relatórios</span>
+                </li>
+                <li class="nav-item" data-page="ia">
+                    <span class="nav-icon">🤖</span>
+                    <span class="nav-text">Central IA</span>
+                </li>
+                <li class="nav-item" data-page="configuracoes">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-text">Configurações</span>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- CONTEÚDO PRINCIPAL -->
+        <main class="main-content">
+            <!-- HEADER -->
+            <header class="header">
+                <div class="header-title">
+                    <h1>Dashboard Principal</h1>
+                    <p>Visão geral do sistema Top Service</p>
+                </div>
+                
+                <div class="user-area">
+                    <div class="user-info">
+                        <div class="user-details">
+                            <strong>Administrador</strong>
+                            <span>admin@topservice.com</span>
+                        </div>
+                        <div class="user-avatar">
+                            TS
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- CARDS DE MÉTRICAS -->
+            <section class="metrics-section">
+                <div class="metrics-grid">
+                    <!-- Card 1: Funcionários -->
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">👥</div>
+                            <h3>Total de Funcionários</h3>
+                        </div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-footer">
+                            <small>Aguardando cadastro</small>
+                        </div>
+                    </article>
+
+                    <!-- Card 2: Presença -->
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">✅</div>
+                            <h3>Presentes Hoje</h3>
+                        </div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-footer">
+                            <small>0% de presença</small>
+                        </div>
+                    </article>
+
+                    <!-- Card 3: Horas Extras -->
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">⏰</div>
+                            <h3>Horas Extras</h3>
+                        </div>
+                        <div class="metric-value">0h</div>
+                        <div class="metric-footer">
+                            <small>Este mês</small>
+                        </div>
+                    </article>
+
+                    <!-- Card 4: Alertas -->
+                    <article class="metric-card">
+                        <div class="metric-header">
+                            <div class="metric-icon">⚠️</div>
+                            <h3>Alertas Ativos</h3>
+                        </div>
+                        <div class="metric-value">0</div>
+                        <div class="metric-footer">
+                            <small>Tudo sob controle</small>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- SEÇÃO DE STATUS DO SISTEMA -->
+            <section class="status-section">
+                <div class="status-card">
+                    <h2>🎯 Status do Sistema</h2>
+                    <div class="status-content">
+                        <p>Bem-vindo ao <strong>Top Service</strong> - Seu sistema completo de gestão empresarial.</p>
+                        
+                        <div class="system-info">
+                            <div class="info-item">
+                                <span class="info-label">Versão:</span>
+                                <span class="info-value">1.0.0</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Status:</span>
+                                <span class="info-value online">● Online</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Última atualização:</span>
+                                <span class="info-value">Agora mesmo</span>
+                            </div>
+                        </div>
+
+                        <div class="next-features">
+                            <h4>Próximas Funcionalidades:</h4>
+                            <ul class="features-list">
+                                <li>✅ Sistema de Funcionários</li>
+                                <li>✅ Controle de Ponto</li>
+                                <li>✅ Gestão de Departamentos</li>
+                                <li>✅ Relatórios Avançados</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="scripts/navigation.js"></script>
+</body>
+</html>
