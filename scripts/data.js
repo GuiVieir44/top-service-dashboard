@@ -20,8 +20,33 @@ const employeesData = [
     // ... mais funcionários ...
 ];
 
+// Persistence key for employees
+const EMP_KEY = 'topservice_employees_v1';
+
 // Variável global que armazena todos os funcionários
-let employees = [...employeesData];
+let employees = [];
+
+// Load persisted employees if present, otherwise use default employeesData
+try {
+    const stored = localStorage.getItem(EMP_KEY);
+    if (stored) {
+        employees = JSON.parse(stored);
+    } else {
+        employees = [...employeesData];
+        localStorage.setItem(EMP_KEY, JSON.stringify(employees));
+    }
+} catch (e) {
+    console.error('Erro ao carregar employees do localStorage, usando defaults:', e);
+    employees = [...employeesData];
+}
+
+function saveEmployees() {
+    try {
+        localStorage.setItem(EMP_KEY, JSON.stringify(employees));
+    } catch (e) {
+        console.error('Erro ao salvar employees no localStorage:', e);
+    }
+}
 /**
  * Obtém a lista completa de funcionários
  * @returns {Array} Array com todos os funcionários
@@ -61,10 +86,9 @@ function addEmployee(employee) {
         ...employee  // Copia todos os dados do employee passado
     };
     
-    // Adiciona ao array
+    // Adiciona ao array e persiste
     employees.push(newEmployee);
-    
-    // Retorna o novo funcionário
+    saveEmployees();
     return newEmployee;
 }
 
@@ -84,6 +108,7 @@ function updateEmployee(id, updatedData) {
             ...updatedData,
             id: employees[index].id  // Garante que o ID não mude
         };
+        saveEmployees();
         return true;
     }
     
@@ -100,6 +125,7 @@ function deleteEmployee(id) {
     
     if (index !== -1) {
         employees.splice(index, 1);  // Remove 1 elemento a partir do índice
+        saveEmployees();
         return true;
     }
     

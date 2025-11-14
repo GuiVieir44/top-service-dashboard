@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top Service - Sistema de Gestão</title>
     <link rel="stylesheet" href="styles/main.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
 </head>
 <body>
+    <!-- Botão Toggle Sidebar (Mobile) -->
+    <button class="sidebar-toggle">☰</button>
+
     <div class="container">
         <!-- SIDEBAR -->
         <nav class="sidebar">
@@ -16,41 +21,65 @@
             </div>
             
             <ul class="nav-links">
-                <li class="nav-item active" data-page="dashboard">
-                    <span class="nav-icon">📊</span>
-                    <span class="nav-text">Dashboard</span>
+                <li>
+                    <button class="nav-item active" data-page="dashboard" aria-current="page" type="button">
+                        <span class="nav-icon">📊</span>
+                        <span class="nav-text">Dashboard</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="ponto">
-                    <span class="nav-icon">🕒</span>
-                    <span class="nav-text">Registrar Ponto</span>
+                <li>
+                    <button class="nav-item" data-page="ponto" type="button">
+                        <span class="nav-icon">🕒</span>
+                        <span class="nav-text">Registrar Ponto</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="manual">
-                    <span class="nav-icon">✏️</span>
-                    <span class="nav-text">Marcação Manual</span>
+                <li>
+                    <button class="nav-item" data-page="manual" type="button">
+                        <span class="nav-icon">✏️</span>
+                        <span class="nav-text">Marcação Manual</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="funcionarios">
-                    <span class="nav-icon">👥</span>
-                    <span class="nav-text">Funcionários</span>
+                <li>
+                    <button class="nav-item" data-page="funcionarios" type="button">
+                        <span class="nav-icon">👥</span>
+                        <span class="nav-text">Funcionários</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="departamentos">
-                    <span class="nav-icon">🏢</span>
-                    <span class="nav-text">Departamentos</span>
+                <li>
+                    <button class="nav-item" data-page="departamentos" type="button">
+                        <span class="nav-icon">🏢</span>
+                        <span class="nav-text">Departamentos</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="afastamentos">
-                    <span class="nav-icon">🏖️</span>
-                    <span class="nav-text">Afastamentos</span>
+                <li>
+                    <button class="nav-item" data-page="afastamentos" type="button">
+                        <span class="nav-icon">🏖️</span>
+                        <span class="nav-text">Afastamentos</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="relatorios">
-                    <span class="nav-icon">📈</span>
-                    <span class="nav-text">Relatórios</span>
+                <li>
+                    <button class="nav-item" data-page="relatorios" type="button">
+                        <span class="nav-icon">📈</span>
+                        <span class="nav-text">Relatórios</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="ia">
-                    <span class="nav-icon">🤖</span>
-                    <span class="nav-text">Central IA</span>
+                <li>
+                    <button class="nav-item" data-page="usuarios" type="button">
+                        <span class="nav-icon">🔐</span>
+                        <span class="nav-text">Usuários</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="configuracoes">
-                    <span class="nav-icon">⚙️</span>
-                    <span class="nav-text">Configurações</span>
+                <li>
+                    <button class="nav-item" data-page="ia" type="button">
+                        <span class="nav-icon">🤖</span>
+                        <span class="nav-text">Central IA</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item" data-page="configuracoes" type="button">
+                        <span class="nav-icon">⚙️</span>
+                        <span class="nav-text">Configurações</span>
+                    </button>
                 </li>
             </ul>
         </nav>
@@ -131,6 +160,34 @@
                     </div>
                 </section>
 
+                <!-- SEÇÃO DE GRÁFICOS -->
+                <section class="charts-section">
+                    <h2 style="color: var(--preto); font-size: 1.8rem; margin-bottom: 10px;">📊 Análise de Dados</h2>
+                    <p style="color: var(--cinza-medio); margin-bottom: 30px;">Gráficos e métricas em tempo real</p>
+                    
+                    <div class="charts-grid">
+                        <!-- Gráfico 1: Pontos por Funcionário -->
+                        <div class="chart-container">
+                            <canvas id="chartPunchByEmployee"></canvas>
+                        </div>
+
+                        <!-- Gráfico 2: Presença Hoje -->
+                        <div class="chart-container">
+                            <canvas id="chartPresenceToday"></canvas>
+                        </div>
+
+                        <!-- Gráfico 3: Afastamentos por Tipo -->
+                        <div class="chart-container">
+                            <canvas id="chartAbsenceType"></canvas>
+                        </div>
+
+                        <!-- Gráfico 4: Horas Extras -->
+                        <div class="chart-container">
+                            <canvas id="chartOvertime"></canvas>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- SEÇÃO DE STATUS DO SISTEMA -->
                 <section class="status-section">
                     <div class="status-card">
@@ -168,7 +225,24 @@
             </div>
         </main>
     </div>
-
+    <script src="scripts/toast.js"></script>
+    <script src="scripts/data.js"></script>
+    <script src="scripts/employees.js"></script>
+    <script src="scripts/ponto.js"></script>
+    <script src="scripts/afastamentos.js"></script>
+    <script src="scripts/relatorios.js"></script>
+    <script src="scripts/users.js"></script>
+    <script src="scripts/departamentos.js"></script>
+    <script src="scripts/manual.js"></script>
+    <script src="scripts/configuracoes.js"></script>
+    <script src="scripts/charts.js"></script>
+    <script src="scripts/permissions.js"></script>
+    <script src="scripts/notifications.js"></script>
+    <script src="scripts/theme.js"></script>
+    <script src="scripts/validation.js"></script>
+    <script src="scripts/ai.js"></script>
     <script src="scripts/navigation.js"></script>
+    <script src="scripts/mobile-toggle.js"></script>
+    <!-- debug banner removed -->
 </body>
-</html>
+</html> 
