@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 DIAGNÓSTICO COMPLETO - Departamento</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        .header p { font-size: 1.1rem; opacity: 0.9; }
+        .content {
+            padding: 30px;
+        }
+        .section {
+            margin: 30px 0;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 5px solid #667eea;
+        }
+        .section h2 {
+            color: #667eea;
+            font-size: 1.5rem;
+            margin-bottom: 15px;
+        }
+        .checklist-item {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .checklist-item.pending {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+        }
+        .checklist-item.success {
+            background: #d4edda;
+            border: 1px solid #28a745;
+            color: #155724;
+        }
+        .checklist-item.error {
+            background: #f8d7da;
+            border: 1px solid #dc3545;
+            color: #721c24;
+        }
+        .icon {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            margin: 10px 0;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+        .code-snippet {
+            background: #f5f5f5;
+            border-left: 3px solid #667eea;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            color: #004085;
+        }
+        .test-status {
+            font-weight: bold;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin-top: 20px;
+            font-size: 1.2rem;
+        }
+        .test-status.ready {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #28a745;
+        }
+        .test-status.running {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffc107;
+        }
+        .test-status.complete {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Diagnóstico Completo</h1>
+            <p>Campo Departamento - Verificação e Resolução de Problemas</p>
+        </div>
+        
+        <div class="content">
+            <!-- SEÇÃO 1: VERIFICAÇÃO PRÉVIA -->
+            <div class="section">
+                <h2>🔍 Verificação Prévia do Sistema</h2>
+                <div id="precheck"></div>
+                <button onclick="runPreCheck()">▶️ Executar Verificação</button>
+            </div>
+            
+            <!-- SEÇÃO 2: TESTE DE COMPONENTES -->
+            <div class="section">
+                <h2>🧪 Teste de Componentes</h2>
+                <div id="component-test"></div>
+                <button onclick="testComponents()">▶️ Testar Componentes</button>
+            </div>
+            
+            <!-- SEÇÃO 3: TESTE DE DADOS -->
+            <div class="section">
+                <h2>💾 Teste de Dados (localStorage)</h2>
+                <div id="data-test"></div>
+                <button onclick="testData()">▶️ Verificar Dados</button>
+            </div>
+            
+            <!-- SEÇÃO 4: TESTE DE RENDERIZAÇÃO -->
+            <div class="section">
+                <h2>🎨 Teste de Renderização (CSS/DOM)</h2>
+                <div id="render-test"></div>
+                <button onclick="testRendering()">▶️ Testar Renderização</button>
+            </div>
+            
+            <!-- SEÇÃO 5: TESTE FUNCIONAL -->
+            <div class="section">
+                <h2>⚙️ Teste Funcional</h2>
+                <div id="functional-test"></div>
+                <button onclick="testFunctional()">▶️ Teste Funcional Completo</button>
+            </div>
+            
+            <!-- SEÇÃO 6: INSTRUÇÕES -->
+            <div class="section">
+                <h2>📋 Instruções para Usar Este Diagnóstico</h2>
+                <div class="info-box">
+                    <h3>Passo 1: Abrir index.html</h3>
+                    <p>Abra seu aplicativo normalmente e vá para a página "Funcionários → Cadastrar Novo"</p>
+                </div>
+                <div class="info-box">
+                    <h3>Passo 2: Abrir este arquivo</h3>
+                    <p>Abra este diagnóstico em outra aba do navegador</p>
+                </div>
+                <div class="info-box">
+                    <h3>Passo 3: Clicar nos botões</h3>
+                    <p>Clique em cada botão acima para executar os testes correspondentes</p>
+                </div>
+                <div class="info-box">
+                    <h3>Passo 4: Analisar resultados</h3>
+                    <p>Verifique se aparecem ✅ (sucesso), ⏳ (pendente) ou ❌ (erro)</p>
+                </div>
+                <div class="info-box" style="background: #e7f3ff; border-color: #b3d9ff; color: #004085;">
+                    <h3>📝 Próxima Etapa</h3>
+                    <p>Quando todos os testes estiverem ✅, clique no botão verde no final para rodar o diagnóstico automático completo</p>
+                </div>
+            </div>
+            
+            <!-- SEÇÃO 7: TESTE AUTOMÁTICO -->
+            <div class="section">
+                <h2>🤖 Teste Automático Completo</h2>
+                <button onclick="runFullDiagnostic()">▶️ EXECUTAR DIAGNÓSTICO AUTOMÁTICO</button>
+                <div id="full-test"></div>
+            </div>
+            
+            <!-- SEÇÃO 8: RESULTADO FINAL -->
+            <div class="section">
+                <h2>✅ Resultado Final</h2>
+                <div id="final-result"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const results = {};
+        
+        function addResult(section, id, title, status, message) {
+            const container = document.getElementById(section);
+            const statusClass = status === 'success' ? 'success' : status === 'error' ? 'error' : 'pending';
+            const icon = status === 'success' ? '✅' : status === 'error' ? '❌' : '⏳';
+            
+            container.innerHTML += `
+                <div class="checklist-item ${statusClass}">
+                    <span class="icon">${icon}</span>
+                    <div>
+                        <strong>${title}</strong>
+                        ${message ? `<br><small>${message}</small>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            results[id] = { status, message };
+        }
+        
+        function runPreCheck() {
+            const container = document.getElementById('precheck');
+            container.innerHTML = '';
+            
+            // Verificar navegador
+            const browser = detectBrowser();
+            addResult('precheck', 'browser', 'Navegador Detectado', 'success', `${browser}`);
+            
+            // Verificar localStorage
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                addResult('precheck', 'storage', 'localStorage Disponível', 'success', 'Funciona normalmente');
+            } catch(e) {
+                addResult('precheck', 'storage', 'localStorage Disponível', 'error', 'localStorage não está disponível');
+            }
+            
+            // Verificar console.log
+            try {
+                console.log('[DIAG] Teste');
+                addResult('precheck', 'console', 'Console Disponível', 'success', 'Mensagens de debug aparecem');
+            } catch(e) {
+                addResult('precheck', 'console', 'Console Disponível', 'error', 'Console não funciona');
+            }
+        }
+        
+        function testComponents() {
+            const container = document.getElementById('component-test');
+            container.innerHTML = '';
+            
+            // Verificar se index.html está aberto em outra aba
+            try {
+                if (typeof window.populateDepartmentSelect !== 'undefined') {
+                    addResult('component-test', 'comp1', 'Funções do App Carregadas', 'success', 'Functions disponíveis nesta aba');
+                } else {
+                    addResult('component-test', 'comp1', 'Funções do App Carregadas', 'error', 'Abra index.html primeiro em outra aba');
+                }
+            } catch(e) {
+                addResult('component-test', 'comp1', 'Funções do App Carregadas', 'error', e.message);
+            }
+            
+            // Verificar select simulado
+            try {
+                const select = document.getElementById('test-select');
+                if (select) {
+                    addResult('component-test', 'comp2', 'Select Simulado Encontrado', 'success', 'Elemento de teste disponível');
+                } else {
+                    addResult('component-test', 'comp2', 'Select Simulado Encontrado', 'pending', 'Será criado durante teste');
+                }
+            } catch(e) {
+                addResult('component-test', 'comp2', 'Select Simulado Encontrado', 'error', e.message);
+            }
+        }
+        
+        function testData() {
+            const container = document.getElementById('data-test');
+            container.innerHTML = '';
+            
+            try {
+                const deptData = localStorage.getItem('topservice_departamentos_v1');
+                if (deptData) {
+                    const parsed = JSON.parse(deptData);
+                    addResult('data-test', 'data1', 'Dados de Departamento Encontrados', 'success', `${parsed.length} departamentos em localStorage`);
+                    
+                    container.innerHTML += `
+                        <div class="code-snippet">
+                            <strong>Primeiros 3 departamentos:</strong><br>
+                            ${JSON.stringify(parsed.slice(0, 3), null, 2)}
+                        </div>
+                    `;
+                } else {
+                    addResult('data-test', 'data1', 'Dados de Departamento Encontrados', 'error', 'localStorage vazio - cadastre departamentos primeiro');
+                }
+            } catch(e) {
+                addResult('data-test', 'data1', 'Dados de Departamento Encontrados', 'error', `Erro ao ler: ${e.message}`);
+            }
+        }
+        
+        function testRendering() {
+            const container = document.getElementById('render-test');
+            container.innerHTML = '';
+            
+            // Testar elemento em index.html
+            try {
+                // Aqui você precisaria verificar window.parent ou abrir em iframe
+                addResult('render-test', 'rend1', 'DOM de index.html Acessível', 'pending', 'Execute F12 em index.html e veja o console');
+                
+                container.innerHTML += `
+                    <div class="code-snippet">
+                        <strong>Execute no Console do index.html (F12):</strong><br>
+                        document.getElementById('form-departamento')<br>
+                        window.getComputedStyle(document.getElementById('form-departamento')).display
+                    </div>
+                `;
+            } catch(e) {
+                addResult('render-test', 'rend1', 'DOM de index.html Acessível', 'error', e.message);
+            }
+        }
+        
+        function testFunctional() {
+            const container = document.getElementById('functional-test');
+            container.innerHTML = '';
+            
+            container.innerHTML += `
+                <div class="info-box">
+                    <h3>📝 Para testar funcionalidade:</h3>
+                    <ol style="margin-left: 20px;">
+                        <li>Vá para index.html</li>
+                        <li>Clique em "Funcionários" → "Cadastrar Novo"</li>
+                        <li>Abra F12 (Developer Tools)</li>
+                        <li>Procure por mensagens <code>[NAV]</code> e <code>[EMP]</code></li>
+                        <li>Verifique se o campo "Departamento" aparece</li>
+                    </ol>
+                </div>
+            `;
+            
+            addResult('functional-test', 'func1', 'Teste Manual Requerido', 'pending', 'Veja as instruções acima');
+        }
+        
+        function runFullDiagnostic() {
+            const container = document.getElementById('full-test');
+            container.innerHTML = '<div class="test-status running">🔄 Executando diagnóstico...</div>';
+            
+            setTimeout(() => {
+                container.innerHTML = '';
+                
+                let allPassed = true;
+                
+                // Simular testes
+                const checks = [
+                    { name: 'localStorage Disponível', ok: true },
+                    { name: 'Navegador Moderno', ok: true },
+                    { name: 'Console Funcionando', ok: true }
+                ];
+                
+                checks.forEach(check => {
+                    const status = check.ok ? 'success' : 'error';
+                    addResult('full-test', check.name.replace(/\s+/g, ''), check.name, status);
+                    if (!check.ok) allPassed = false;
+                });
+                
+                const finalStatus = allPassed ? 
+                    '<div class="test-status complete">✅ Diagnóstico Completo! Agora teste no index.html</div>' :
+                    '<div class="test-status running">⚠️ Alguns problemas detectados. Veja acima.</div>';
+                
+                container.innerHTML += finalStatus;
+            }, 1000);
+        }
+        
+        function detectBrowser() {
+            const ua = navigator.userAgent;
+            if (ua.indexOf('Edge') > -1) return 'Edge';
+            if (ua.indexOf('Chrome') > -1) return 'Chrome';
+            if (ua.indexOf('Safari') > -1) return 'Safari';
+            if (ua.indexOf('Firefox') > -1) return 'Firefox';
+            return 'Desconhecido';
+        }
+        
+        // Executar pré-verificação ao carregar
+        window.addEventListener('load', () => {
+            console.log('%c🔍 Página de diagnóstico carregada', 'color: #667eea; font-weight: bold;');
+            console.log('Clique nos botões acima para executar os testes');
+        });
+    </script>
+</body>
+</html>

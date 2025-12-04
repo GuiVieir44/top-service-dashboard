@@ -5,52 +5,77 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Top Service - Sistema de Gestão</title>
     <link rel="stylesheet" href="styles/main.css">
+    <!-- Chart.js para gráficos -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <!-- jsPDF para exportar PDF -->
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <!-- html2canvas para converter HTML para imagem -->
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <!-- XLSX para exportar Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 </head>
 <body>
+    <!-- Botão Toggle Sidebar (Mobile) -->
+    <button class="sidebar-toggle">☰</button>
+
     <div class="container">
         <!-- SIDEBAR -->
         <nav class="sidebar">
             <div class="logo">
-                <h2>🏢 Top Service</h2>
+                <h2>Top Service</h2>
                 <small>Sistema de Gestão</small>
             </div>
             
             <ul class="nav-links">
-                <li class="nav-item active" data-page="dashboard">
-                    <span class="nav-icon">📊</span>
-                    <span class="nav-text">Dashboard</span>
+                <li>
+                    <button class="nav-item active" data-page="dashboard" aria-current="page" type="button">
+                        <span class="nav-text">Dashboard</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="ponto">
-                    <span class="nav-icon">🕒</span>
-                    <span class="nav-text">Registrar Ponto</span>
+                <li>
+                    <button class="nav-item" data-page="ponto" type="button">
+                        <span class="nav-text">Registrar Ponto</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="manual">
-                    <span class="nav-icon">✏️</span>
-                    <span class="nav-text">Marcação Manual</span>
+                <li>
+                    <button class="nav-item" data-page="manual" type="button">
+                        <span class="nav-text">Consulta de Ponto</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="funcionarios">
-                    <span class="nav-icon">👥</span>
-                    <span class="nav-text">Funcionários</span>
+                <li>
+                    <button class="nav-item" data-page="funcionarios" type="button">
+                        <span class="nav-text">Funcionários</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="departamentos">
-                    <span class="nav-icon">🏢</span>
-                    <span class="nav-text">Departamentos</span>
+                <li>
+                    <button class="nav-item" data-page="departamentos" type="button">
+                        <span class="nav-text">Departamentos</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="afastamentos">
-                    <span class="nav-icon">🏖️</span>
-                    <span class="nav-text">Afastamentos</span>
+                <li>
+                    <button class="nav-item" data-page="afastamentos" type="button">
+                        <span class="nav-text">Afastamentos</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="relatorios">
-                    <span class="nav-icon">📈</span>
-                    <span class="nav-text">Relatórios</span>
+                <li>
+                    <button class="nav-item" data-page="relatorios" type="button">
+                        <span class="nav-text">Relatórios</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="ia">
-                    <span class="nav-icon">🤖</span>
-                    <span class="nav-text">Central IA</span>
+                <li>
+                    <button class="nav-item" data-page="usuarios" type="button">
+                        <span class="nav-text">Usuários</span>
+                    </button>
                 </li>
-                <li class="nav-item" data-page="configuracoes">
-                    <span class="nav-icon">⚙️</span>
-                    <span class="nav-text">Configurações</span>
+                <li>
+                    <button class="nav-item" data-page="ia" type="button">
+                        <span class="nav-text">Central IA</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="nav-item" data-page="configuracoes" type="button">
+                        <span class="nav-text">Configurações</span>
+                    </button>
                 </li>
             </ul>
         </nav>
@@ -66,13 +91,25 @@
                     </div>
                     
                     <div class="user-area">
-                        <div class="user-info">
+                        <div class="user-info" id="user-profile-btn" style="cursor: pointer; position: relative;">
                             <div class="user-details">
                                 <strong>Administrador</strong>
                                 <span>admin@topservice.com</span>
                             </div>
                             <div class="user-avatar">
                                 TS
+                            </div>
+                            
+                            <!-- Menu Dropdown de Perfil -->
+                            <div id="profile-menu" class="profile-menu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); min-width: 200px; z-index: 1000; margin-top: 8px;">
+                                <div style="padding: 12px;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                                        Administrador
+                                    </div>
+                                    <button id="logout-btn" style="width: 100%; padding: 10px 12px; background: none; border: none; color: var(--text-primary); cursor: pointer; text-align: left; font-size: 0.95em; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(13, 59, 102, 0.1)'" onmouseout="this.style.background='none'">
+                                        🚪 Sair
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -84,57 +121,87 @@
                         <!-- Card 1: Funcionários -->
                         <article class="metric-card">
                             <div class="metric-header">
-                                <div class="metric-icon">👥</div>
                                 <h3>Total de Funcionários</h3>
                             </div>
                             <div class="metric-value" id="total-funcionarios">0</div>
                             <div class="metric-footer">
-                                <small>Aguardando cadastro</small>
+                                <small>Cadastrados no sistema</small>
                             </div>
                         </article>
 
                         <!-- Card 2: Presença -->
                         <article class="metric-card">
                             <div class="metric-header">
-                                <div class="metric-icon">✅</div>
                                 <h3>Presentes Hoje</h3>
                             </div>
                             <div class="metric-value" id="presentes-hoje">0</div>
                             <div class="metric-footer">
-                                <small>0% de presença</small>
+                                <small>Presença registrada</small>
                             </div>
                         </article>
 
                         <!-- Card 3: Horas Extras -->
                         <article class="metric-card">
                             <div class="metric-header">
-                                <div class="metric-icon">⏰</div>
                                 <h3>Horas Extras</h3>
                             </div>
-                            <div class="metric-value">0h</div>
+                            <div class="metric-value" id="horas-extras-mes">0h</div>
                             <div class="metric-footer">
                                 <small>Este mês</small>
                             </div>
                         </article>
 
-                        <!-- Card 4: Alertas -->
+                        <!-- Card 4: Atrasos -->
                         <article class="metric-card">
                             <div class="metric-header">
-                                <div class="metric-icon">⚠️</div>
-                                <h3>Alertas Ativos</h3>
+                                <h3>Atrasos Totais</h3>
                             </div>
-                            <div class="metric-value">0</div>
+                            <div class="metric-value" id="atrasos-mes">0h</div>
                             <div class="metric-footer">
-                                <small>Tudo sob controle</small>
+                                <small>Este mês</small>
                             </div>
                         </article>
+                    </div>
+                </section>
+
+                <!-- SEÇÃO DE GRÁFICOS E ANÁLISE DE DADOS -->
+                <section class="charts-section">
+                    <h2 style="color: var(--preto); font-size: 1.8rem; margin-bottom: 10px;">Análise de Dados</h2>
+                    <p style="color: var(--text-tertiary); margin-bottom: 30px;">Gráficos e métricas em tempo real do sistema</p>
+                    
+                    <div class="charts-grid">
+                        <!-- Gráfico 1: Presença Hoje -->
+                        <div class="chart-container">
+                            <canvas id="chartPresenceToday"></canvas>
+                        </div>
+
+                        <!-- Gráfico 2: Afastamentos por Tipo -->
+                        <div class="chart-container">
+                            <canvas id="chartAbsenceType"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Painel de Avisos -->
+                    <div style="margin-top: 30px; background: var(--bg-secondary); border-radius: 12px; padding: 24px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow);">
+                        <h3 style="color: var(--text-primary); margin-top: 0; font-size: 1.2rem; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">⚠️ Avisos Importantes</h3>
+                        
+                        <div id="alerts-container" style="display: grid; gap: 12px;">
+                            <p style="text-align: center; color: var(--text-tertiary); padding: 20px;">Carregando avisos...</p>
+                        </div>
+                        
+                        <!-- Paginação de Avisos -->
+                        <div id="alerts-pagination" style="display: none; margin-top: 20px; display: flex; justify-content: center; gap: 8px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                            <button onclick="previousAlertsPage()" style="padding: 8px 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">← Anterior</button>
+                            <span id="alerts-page-info" style="padding: 8px 12px; color: var(--text-primary); font-weight: 600;"></span>
+                            <button onclick="nextAlertsPage()" style="padding: 8px 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Próxima →</button>
+                        </div>
                     </div>
                 </section>
 
                 <!-- SEÇÃO DE STATUS DO SISTEMA -->
                 <section class="status-section">
                     <div class="status-card">
-                        <h2>🎯 Status do Sistema</h2>
+                        <h2>Status do Sistema</h2>
                         <div class="status-content">
                             <p>Bem-vindo ao <strong>Top Service</strong> - Seu sistema completo de gestão empresarial.</p>
                             
@@ -168,7 +235,407 @@
             </div>
         </main>
     </div>
-
+    <script src="scripts/debug.js"></script>
+    <script src="scripts/toast.js"></script>
+    <script>
+        console.log('🧪 TESTE: Verificando se navegação pode ser testada');
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log('✅ DOM pronto, aguardando navigation.js...');
+        });
+    </script>
+    <script src="scripts/export-relatorio.js"></script>
+    <script src="scripts/relatorio-departamento.js"></script>
+    <script src="scripts/relatorio-fechamento.js"></script>
+    <script src="scripts/relatorio-ferias.js"></script>
+    <script src="scripts/data.js"></script>
+    <script src="scripts/cargos.js"></script>
+    <script src="scripts/cargos-departamento.js"></script>
+    <script src="scripts/departamentos.js"></script>
+    <script src="scripts/employees.js"></script>
+    <script src="scripts/ponto.js"></script>
+    <script src="scripts/adiantamentos.js"></script>
+    <script src="scripts/consulta-ponto.js"></script>
+    <script src="scripts/ausencias.js"></script>
+    <script src="scripts/afastamentos.js"></script>
+    <script src="scripts/atrasos.js"></script>
+    <script src="scripts/relatorio-ponto.js"></script>
+    <script src="scripts/demo-data.js"></script>
+    <script src="scripts/test-relatorio.js"></script>
+    <script src="scripts/relatorios.js"></script>
+    <script src="scripts/relatorios-departamento-complexo.js"></script>
+    <script src="scripts/users.js"></script>
+    <script src="scripts/manual.js"></script>
+    <script src="scripts/configuracoes.js"></script>
+    <script src="scripts/charts.js"></script>
+    <script src="scripts/auto-corrigir.js"></script>
+    <script src="scripts/permissions.js"></script>
+    <script src="scripts/notifications.js"></script>
+    <script src="scripts/theme.js"></script>
+    <script src="scripts/validation.js"></script>
+    <script src="scripts/ai.js"></script>
+    <script src="scripts/persistence.js"></script>
+    <script src="scripts/save-indicator.js"></script>
+    <script src="scripts/persistence-test.js"></script>
+    <script src="scripts/test-improvements.js"></script>
+    <script src="scripts/test-nocturnal-overtime.js"></script>
+    <script src="scripts/add-folga-mass.js"></script>
+    <script src="scripts/debug-func-008.js"></script>
+    <script src="scripts/analisar-todos-noturnas.js"></script>
+    <script src="scripts/corrigir-padrao-008.js"></script>
+    <script src="scripts/debug-horas-extra.js"></script>
     <script src="scripts/navigation.js"></script>
+    <script src="scripts/supabase-sync.js"></script>
+    <script src="scripts/test-supabase.js"></script>
+    <script src="scripts/mobile-toggle.js"></script>
+    
+    <!-- Script de inicialização das tabelas de atrasos e horas extras -->
+    <script>
+        // Função global para renderizar tabela de extras
+        window.refreshExtrasReportTable = function(date = null) {
+            if (!date) date = new Date();
+            
+            const extrasContainer = document.getElementById('chart-extras-container');
+            if (!extrasContainer) return;
+            
+            if (typeof generateDailyDelayReport === 'function') {
+                const data = generateDailyDelayReport(date);
+                const extras = data.filter(r => r.tipo === 'extra' || r.tipo === 'adiantamento');
+                
+                if (extras.length === 0) {
+                    extrasContainer.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">📭 Nenhuma hora extra ou adiantamento registrado para ' + date.toLocaleDateString('pt-BR') + '</p>';
+                    return;
+                }
+                
+                // Separar extras e adiantamentos
+                const onlyExtras = extras.filter(r => r.tipo === 'extra');
+                const adiantamentos = extras.filter(r => r.tipo === 'adiantamento');
+                
+                let html = '<table class="table-report table-extras">';
+                html += '<thead><tr><th style="text-align:left;">Matrícula</th><th style="text-align:left;">Funcionário</th><th style="text-align:left;">Cargo</th><th style="text-align:right;">Trab</th><th style="text-align:right;">Esp</th><th style="text-align:right;">⭐ Extra</th><th style="text-align:right;">⏰ Adiantamento</th></tr></thead><tbody>';
+                
+                let totalExtra = 0;
+                let totalAdiantamento = 0;
+                
+                extras.forEach(item => {
+                    if (item.tipo === 'extra') {
+                        totalExtra += item.diferenca;
+                    } else if (item.tipo === 'adiantamento') {
+                        totalAdiantamento += item.adiantamentoHoras || 0;
+                    }
+                    
+                    const extraDisplay = item.tipo === 'extra' ? '+' + item.diferenca + 'h' : '-';
+                    const adiantamentoDisplay = item.tipo === 'adiantamento' ? '+' + (item.adiantamentoHoras || 0) + 'h' : '-';
+                    
+                    html += '<tr>';
+                    html += '<td>' + item.matricula + '</td>';
+                    html += '<td>' + item.nome + '</td>';
+                    html += '<td>' + item.cargo + '</td>';
+                    html += '<td style="text-align:right;font-weight:bold;">' + item.horasTrabalhadas + 'h</td>';
+                    html += '<td style="text-align:right;">' + item.horasEsperadas + 'h</td>';
+                    html += '<td style="text-align:right;color:#27ae60;font-weight:bold;">' + extraDisplay + '</td>';
+                    html += '<td style="text-align:right;color:#3498db;font-weight:bold;">' + adiantamentoDisplay + '</td>';
+                    html += '</tr>';
+                });
+                
+                html += '<tr class="table-extras-total"><td colspan="5" style="text-align:right;">TOTAL:</td><td style="text-align:right;color:#27ae60;">+' + totalExtra + 'h</td><td style="text-align:right;color:#3498db;">+' + totalAdiantamento + 'h</td></tr>';
+                html += '</tbody></table>';
+                
+                extrasContainer.innerHTML = html;
+            }
+        };
+        
+        function initDelayAndExtrasReports() {
+            try {
+                // HORAS EXTRAS
+                const extrasDateInput = document.getElementById('daily-report-date-extras');
+                const extrasBtn = document.getElementById('generate-extras-report');
+                const extrasContainer = document.getElementById('chart-extras-container');
+                
+                if (extrasDateInput && extrasBtn && extrasContainer) {
+                    const today = new Date();
+                    extrasDateInput.value = today.toISOString().split('T')[0];
+                    
+                    const renderExtras = () => {
+                        const date = new Date(extrasDateInput.value + 'T00:00:00');
+                        window.refreshExtrasReportTable(date);
+                    };
+                    
+                    renderExtras();
+                    extrasBtn.addEventListener('click', renderExtras);
+                    extrasDateInput.addEventListener('change', renderExtras);
+                }
+                
+                // ATRASOS
+                const delaysDateInput = document.getElementById('daily-report-date-delays');
+                const delaysBtn = document.getElementById('generate-delays-report');
+                const delaysContainer = document.getElementById('chart-delays-container');
+                
+                if (delaysDateInput && delaysBtn && delaysContainer) {
+                    const today = new Date();
+                    delaysDateInput.value = today.toISOString().split('T')[0];
+                    
+                    const renderDelays = () => {
+                        const date = new Date(delaysDateInput.value + 'T00:00:00');
+                        if (typeof generateDailyDelayReport === 'function') {
+                            const data = generateDailyDelayReport(date);
+                            const delays = data.filter(r => r.tipo === 'atraso');
+                            
+                            if (delays.length === 0) {
+                                delaysContainer.innerHTML = '<p style="text-align:center;color:var(--text-secondary);padding:20px;">📭 Nenhum atraso registrado para ' + date.toLocaleDateString('pt-BR') + '</p>';
+                                return;
+                            }
+                            
+                            let html = '<table class="table-report table-delays">';
+                            html += '<thead><tr><th style="text-align:left;">Matrícula</th><th style="text-align:left;">Funcionário</th><th style="text-align:left;">Cargo</th><th style="text-align:right;">Trab</th><th style="text-align:right;">Esp</th><th style="text-align:right;">Atraso</th></tr></thead><tbody>';
+                            
+                            let totalDelay = 0;
+                            delays.forEach(item => {
+                                totalDelay += item.diferenca;
+                                html += '<tr><td>' + item.matricula + '</td><td>' + item.nome + '</td><td>' + item.cargo + '</td><td style="text-align:right;font-weight:bold;">' + item.horasTrabalhadas + 'h</td><td style="text-align:right;">' + item.horasEsperadas + 'h</td><td style="text-align:right;color:#e74c3c;font-weight:bold;">-' + item.diferenca + 'h</td></tr>';
+                            });
+                            
+                            html += '<tr class="table-delays-total"><td colspan="5" style="text-align:right;">TOTAL:</td><td style="text-align:right;">-' + totalDelay + 'h</td></tr>';
+                            html += '</tbody></table>';
+                            
+                            delaysContainer.innerHTML = html;
+                        }
+                    };
+                    
+                    renderDelays();
+                    delaysBtn.addEventListener('click', renderDelays);
+                    delaysDateInput.addEventListener('change', renderDelays);
+                }
+                
+                console.log('✅ Tabelas de atrasos e horas extras inicializadas');
+            } catch (e) {
+                console.error('Erro ao inicializar tabelas:', e);
+            }
+        }
+        
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initDelayAndExtrasReports);
+        } else {
+            initDelayAndExtrasReports();
+        }
+    </script>
+    
+    <!-- DEBUG: Mostrar estado dos dados no console -->
+    <script>
+        window.debugTopService = function() {
+            const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+            const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+            
+            console.clear();
+            console.log('%c🔍 DEBUG TOP SERVICE', 'color: #3498db; font-size: 16px; font-weight: bold;');
+            console.log('%c📊 PONTOS (topservice_punches_v1)', 'color: #2ecc71; font-weight: bold;');
+            console.log(`Total: ${punches.length} pontos`);
+            if (punches.length > 0) {
+                console.table(punches.map(p => ({
+                    ID: p.id,
+                    Funcionário: p.employeeId,
+                    Tipo: p.type,
+                    RF: p.rf || '-',
+                    Timestamp: p.timestamp
+                })));
+            } else {
+                console.log('❌ Nenhum ponto registrado');
+            }
+            
+            console.log('%c👥 FUNCIONÁRIOS (topservice_employees_v1)', 'color: #2ecc71; font-weight: bold;');
+            console.log(`Total: ${employees.length} funcionários`);
+            if (employees.length > 0) {
+                console.table(employees.map(e => ({
+                    ID: e.id,
+                    Matrícula: e.matricula,
+                    Nome: e.nome,
+                    Cargo: e.cargo,
+                    Departamento: e.departamento
+                })));
+            } else {
+                console.log('❌ Nenhum funcionário registrado');
+            }
+            
+            return { punches, employees };
+        };
+        
+        // Função para debugar métricas do dashboard
+        window.debugDashboardMetrics = function() {
+            console.clear();
+            console.log('%c🎯 DEBUG: MÉTRICAS DO DASHBOARD', 'color: #3498db; font-size: 16px; font-weight: bold;');
+            
+            // Verificar se os elementos existem
+            const totalEl = document.getElementById('total-funcionarios');
+            const presentesEl = document.getElementById('presentes-hoje');
+            const extrasEl = document.getElementById('horas-extras-mes');
+            const atrasosEl = document.getElementById('atrasos-mes');
+            
+            console.log('%c📍 ELEMENTOS HTML:', 'color: #e67e22; font-weight: bold;');
+            console.log('total-funcionarios:', !!totalEl, totalEl?.textContent);
+            console.log('presentes-hoje:', !!presentesEl, presentesEl?.textContent);
+            console.log('horas-extras-mes:', !!extrasEl, extrasEl?.textContent);
+            console.log('atrasos-mes:', !!atrasosEl, atrasosEl?.textContent);
+            
+            if (typeof getTotalMonthlyOvertimeHours === 'function') {
+                console.log('%c⏱️ FUNÇÃO getTotalMonthlyOvertimeHours EXISTE', 'color: #2ecc71; font-weight: bold;');
+                const extras = getTotalMonthlyOvertimeHours();
+                console.log('Resultado:', extras, 'horas');
+            } else {
+                console.log('%c❌ getTotalMonthlyOvertimeHours NÃO EXISTE', 'color: #e74c3c; font-weight: bold;');
+            }
+            
+            if (typeof getTotalMonthlyDelayHours === 'function') {
+                console.log('%c⏰ FUNÇÃO getTotalMonthlyDelayHours EXISTE', 'color: #2ecc71; font-weight: bold;');
+                const atrasos = getTotalMonthlyDelayHours();
+                console.log('Resultado:', atrasos, 'horas');
+            } else {
+                console.log('%c❌ getTotalMonthlyDelayHours NÃO EXISTE', 'color: #e74c3c; font-weight: bold;');
+            }
+            
+            if (typeof window.navigationSystem !== 'undefined' && typeof window.navigationSystem.updateDashboardMetrics === 'function') {
+                console.log('%c📌 CHAMANDO updateDashboardMetrics() manualmente...', 'color: #9b59b6; font-weight: bold;');
+                window.navigationSystem.updateDashboardMetrics();
+                console.log('✅ Métricas atualizadas!');
+                
+                // Verificar valores novamente
+                setTimeout(() => {
+                    console.log('%c📊 VALORES APÓS ATUALIZAÇÃO:', 'color: #f39c12; font-weight: bold;');
+                    console.log('total-funcionarios:', totalEl?.textContent);
+                    console.log('presentes-hoje:', presentesEl?.textContent);
+                    console.log('horas-extras-mes:', extrasEl?.textContent);
+                    console.log('atrasos-mes:', atrasosEl?.textContent);
+                }, 100);
+            } else {
+                console.log('%c❌ navigationSystem.updateDashboardMetrics não disponível', 'color: #e74c3c; font-weight: bold;');
+            }
+            
+            const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+            console.log('%c📌 PONTOS REGISTRADOS:', 'color: #f39c12; font-weight: bold;');
+            console.log('Total:', punches.length, 'pontos');
+            if (punches.length > 0) {
+                console.log('Últimos 3 pontos:');
+                console.table(punches.slice(-3).map(p => ({
+                    Funcionário: p.employeeId,
+                    Tipo: p.type,
+                    Timestamp: p.timestamp
+                })));
+            }
+            
+            const cargosDept = JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
+            console.log('%c🏢 CARGOS POR DEPARTAMENTO:', 'color: #9b59b6; font-weight: bold;');
+            console.log('Total:', cargosDept.length);
+            if (cargosDept.length > 0) {
+                console.table(cargosDept.slice(0, 3).map(c => ({
+                    ID: c.id,
+                    Departamento: c.departmentId,
+                    Cargo: c.cargoNome,
+                    Horas: c.horasEfetivas,
+                    Início: c.horaInicio
+                })));
+            }
+            
+            const afastamentos = JSON.parse(localStorage.getItem('topservice_afastamentos_v1') || '[]');
+            console.log('%c📋 AFASTAMENTOS:', 'color: #e67e22; font-weight: bold;');
+            console.log('Total:', afastamentos.length);
+            if (afastamentos.length > 0) {
+                console.table(afastamentos.slice(0, 3).map(a => ({
+                    Funcionário: a.employeeId,
+                    Tipo: a.type,
+                    Data: a.date
+                })));
+            }
+        };
+        
+        // Executar automaticamente
+        window.debugTopService();
+        console.log('%c💡 Dica: Use window.debugDashboardMetrics() para debug completo do dashboard', 'color: #f39c12;');
+        
+        // Teste rápido: atualizar métricas ao carregar
+        setTimeout(() => {
+            console.log('%c⚡ TESTE: Força atualização de métricas ao carregar página...', 'color: #e74c3c; font-weight: bold;');
+            if (window.navigationSystem && typeof window.navigationSystem.updateDashboardMetrics === 'function') {
+                window.navigationSystem.updateDashboardMetrics();
+            }
+        }, 500);
+        
+        // Função para teste manual dos valores
+        window.testDashboardValues = function() {
+            console.log('%c🧪 TESTE MANUAL DE VALORES', 'color: #3498db; font-size: 14px; font-weight: bold;');
+            
+            // Teste 1: Valores hardcoded
+            console.log('📝 Testando com valores fixos...');
+            document.getElementById('horas-extras-mes').textContent = '5.5h (TESTE)';
+            document.getElementById('atrasos-mes').textContent = '2.25h (TESTE)';
+            console.log('✅ Se os valores "TESTE" aparecerem nos cards, o DOM está funcionando!');
+            
+            // Teste 2: Verificar se as funções existem
+            console.log('%c🔍 Verificando se as funções existem...', 'color: #f39c12; font-weight: bold;');
+            console.log('getTotalMonthlyOvertimeHours:', typeof getTotalMonthlyOvertimeHours);
+            console.log('getTotalMonthlyDelayHours:', typeof getTotalMonthlyDelayHours);
+            
+            if (typeof getTotalMonthlyOvertimeHours === 'function') {
+                try {
+                    const result = getTotalMonthlyOvertimeHours();
+                    console.log('📊 getTotalMonthlyOvertimeHours() retornou:', result);
+                } catch (e) {
+                    console.error('❌ Erro ao executar getTotalMonthlyOvertimeHours:', e);
+                }
+            }
+            
+            if (typeof getTotalMonthlyDelayHours === 'function') {
+                try {
+                    const result = getTotalMonthlyDelayHours();
+                    console.log('⏰ getTotalMonthlyDelayHours() retornou:', result);
+                } catch (e) {
+                    console.error('❌ Erro ao executar getTotalMonthlyDelayHours:', e);
+                }
+            }
+        };
+        
+        console.log('%c💡 Teste rápido: window.testDashboardValues()', 'color: #2ecc71;');
+        
+        // ========================================
+        // MENU DE PERFIL - CONTROLE
+        // ========================================
+        document.addEventListener('DOMContentLoaded', function() {
+            const profileBtn = document.getElementById('user-profile-btn');
+            const profileMenu = document.getElementById('profile-menu');
+            const logoutBtn = document.getElementById('logout-btn');
+            
+            if (profileBtn && profileMenu) {
+                // Abrir/fechar menu ao clicar no perfil
+                profileBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    profileMenu.style.display = profileMenu.style.display === 'none' ? 'block' : 'none';
+                });
+                
+                // Fechar menu ao clicar fora
+                document.addEventListener('click', function() {
+                    profileMenu.style.display = 'none';
+                });
+                
+                // Fechar menu ao clicar dentro dele (evitar propagação)
+                profileMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+            
+            // Função de logout
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', function() {
+                    if (confirm('Tem certeza que deseja sair?')) {
+                        // Limpar localStorage
+                        localStorage.clear();
+                        sessionStorage.clear();
+                        
+                        // Redirecionar ou recarregar
+                        showToast('👋 Até logo!', 'success');
+                        setTimeout(function() {
+                            location.href = 'index.html';
+                        }, 1000);
+                    }
+                });
+            }
+        });
+    </script>
 </body>
 </html>

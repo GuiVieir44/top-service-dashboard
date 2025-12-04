@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Rápido - Consulta Ponto</title>
+    <style>
+        body { font-family: Arial; padding: 20px; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; cursor: pointer; }
+        select { padding: 5px; margin: 5px; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; max-height: 300px; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste - Consulta de Ponto</h1>
+    
+    <button onclick="setupData()">1. Setup Dados de Teste</button>
+    <button onclick="testInit()">2. Inicializar Módulo</button>
+    <button onclick="checkSelects()">3. Verificar Selects</button>
+    <button onclick="clearData()">4. Limpar localStorage</button>
+    
+    <h2>Departamento:</h2>
+    <select id="punch-query-department-filter">
+        <option>-- Selecione departamento --</option>
+    </select>
+    
+    <h2>Funcionário:</h2>
+    <select id="punch-query-employee-select">
+        <option>-- Selecione funcionário --</option>
+    </select>
+    
+    <h2>Log:</h2>
+    <pre id="log"></pre>
+    
+    <script>
+        const log = (msg) => {
+            const pre = document.getElementById('log');
+            pre.textContent += msg + '\n';
+            console.log(msg);
+        };
+        
+        const clearLog = () => {
+            document.getElementById('log').textContent = '';
+        };
+        
+        const setupData = () => {
+            clearLog();
+            log('📝 Criando dados de teste...');
+            
+            const employees = [
+                { id: 1, matricula: "MAT001", nome: "Ana Silva", departamento: "Condomínio A" },
+                { id: 2, matricula: "MAT002", nome: "Bruno Santos", departamento: "Condomínio A" },
+                { id: 3, matricula: "MAT003", nome: "Carlos Oliveira", departamento: "Condomínio B" },
+                { id: 4, matricula: "MAT004", nome: "Diana Martins", departamento: "Condomínio B" }
+            ];
+            
+            localStorage.setItem('topservice_employees_v1', JSON.stringify(employees));
+            // Não salvamos departamentos para testar fallback
+            log(`✅ ${employees.length} funcionários criados`);
+            log('✅ localStorage.setItem("topservice_employees_v1", ...)');
+            log('⚠️  Departamentos NÃO foram salvos (para testar fallback)');
+        };
+        
+        const testInit = () => {
+            clearLog();
+            log('🚀 Testando initPunchQueryModule()...');
+            
+            if (typeof initPunchQueryModule === 'function') {
+                log('✅ Função initPunchQueryModule encontrada!');
+                initPunchQueryModule();
+                log('✅ initPunchQueryModule() executada');
+                
+                setTimeout(() => checkSelects(), 100);
+            } else {
+                log('❌ Função initPunchQueryModule NÃO encontrada!');
+            }
+        };
+        
+        const checkSelects = () => {
+            clearLog();
+            log('🔍 Verificando selects...\n');
+            
+            const empSelect = document.getElementById('punch-query-employee-select');
+            const deptSelect = document.getElementById('punch-query-department-filter');
+            
+            log(`Funcionário Select: ${empSelect ? '✅ Encontrado' : '❌ Não encontrado'}`);
+            if (empSelect) {
+                log(`  - Options: ${empSelect.options.length}`);
+                log(`  - Conteúdo: ${empSelect.innerHTML.substring(0, 100)}...`);
+            }
+            
+            log(`\nDepartamento Select: ${deptSelect ? '✅ Encontrado' : '❌ Não encontrado'}`);
+            if (deptSelect) {
+                log(`  - Options: ${deptSelect.options.length}`);
+                log(`  - Conteúdo: ${deptSelect.innerHTML.substring(0, 100)}...`);
+            }
+        };
+        
+        const clearData = () => {
+            clearLog();
+            localStorage.clear();
+            log('✅ localStorage.clear() executado');
+            document.getElementById('punch-query-employee-select').innerHTML = '<option>-- Selecione funcionário --</option>';
+            document.getElementById('punch-query-department-filter').innerHTML = '<option>-- Selecione departamento --</option>';
+        };
+    </script>
+    
+    <!-- Incluir a função necessária -->
+    <script src="scripts/consulta-ponto.js"></script>
+</body>
+</html>

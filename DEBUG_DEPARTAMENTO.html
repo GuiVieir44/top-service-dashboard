@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔍 DEBUG - Departamento Field</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #ecf0f1;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f8f9fa;
+            border-left: 4px solid #3498db;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 3px;
+            font-weight: bold;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #2c3e50;
+            color: #ecf0f1;
+            padding: 15px;
+            border-radius: 3px;
+            overflow-x: auto;
+        }
+        button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #2980b9;
+        }
+        .test-form {
+            margin: 20px 0;
+            padding: 15px;
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 3px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+        select {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 1px solid #bdc3c7;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnóstico - Campo Departamento</h1>
+        
+        <div class="section">
+            <h2>📋 Checklist de Verificação</h2>
+            <div id="results"></div>
+        </div>
+        
+        <div class="section">
+            <h2>📝 Teste do Formulário</h2>
+            <div class="test-form">
+                <label for="form-departamento">Departamento (Test):</label>
+                <select id="form-departamento">
+                    <option value="">Selecione um departamento</option>
+                </select>
+                <button onclick="testDepartmentPopulation()">🧪 Testar População de Departamentos</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🔧 Console Log</h2>
+            <button onclick="runDiagnostics()">▶️ Executar Diagnósticos Completos</button>
+            <pre id="console-output">Logs aparecerão aqui...</pre>
+        </div>
+    </div>
+
+    <script>
+        // Simular loadDepartments() como seria no main
+        function loadDepartments() {
+            console.log('[TEST] Chamando loadDepartments()');
+            try {
+                const stored = localStorage.getItem('topservice_departamentos_v1');
+                console.log('[TEST] Dados do localStorage:', stored);
+                if (!stored) {
+                    console.warn('[TEST] Nenhum dado em localStorage!');
+                    return [];
+                }
+                const parsed = JSON.parse(stored);
+                console.log('[TEST] Departamentos parseados:', parsed);
+                return parsed;
+            } catch(e) {
+                console.error('[TEST] Erro ao carregar departamentos:', e);
+                return [];
+            }
+        }
+
+        function testDepartmentPopulation() {
+            console.clear();
+            console.log('%c=== TESTE DE POPULAÇÃO DE DEPARTAMENTOS ===', 'color: #9b59b6; font-weight: bold;');
+            
+            const select = document.getElementById('form-departamento');
+            console.log('[TEST] Select encontrado:', select);
+            
+            const departments = loadDepartments();
+            console.log('[TEST] Departamentos carregados:', departments);
+            
+            if (select && departments.length > 0) {
+                select.innerHTML = '<option value="">Selecione um departamento</option>';
+                departments.forEach(dept => {
+                    const option = document.createElement('option');
+                    option.value = dept.id;
+                    option.textContent = dept.nome || dept.name;
+                    select.appendChild(option);
+                });
+                console.log('%c[TEST] ✅ Sucesso! Adicionados ' + departments.length + ' departamentos', 'color: #27ae60;');
+            } else {
+                console.error('%c[TEST] ❌ Erro!', 'color: #e74c3c;');
+            }
+            
+            updateConsoleOutput();
+        }
+
+        function runDiagnostics() {
+            console.clear();
+            
+            const results = [];
+            const resultDiv = document.getElementById('results');
+            resultDiv.innerHTML = '';
+            
+            // 1. Verificar Select
+            console.log('%c[DIAG] 1. Verificando Select #form-departamento...', 'color: #3498db; font-weight: bold;');
+            const select = document.getElementById('form-departamento');
+            if (select) {
+                results.push('<div class="status success">✅ Select encontrado no DOM</div>');
+                console.log('%c✅ Select encontrado', 'color: #27ae60;');
+            } else {
+                results.push('<div class="status error">❌ Select NÃO encontrado no DOM</div>');
+                console.error('%c❌ Select NÃO encontrado', 'color: #e74c3c;');
+            }
+            
+            // 2. Verificar localStorage
+            console.log('%c[DIAG] 2. Verificando localStorage...', 'color: #3498db; font-weight: bold;');
+            const deptData = localStorage.getItem('topservice_departamentos_v1');
+            if (deptData) {
+                try {
+                    const parsed = JSON.parse(deptData);
+                    results.push('<div class="status success">✅ Dados de departamento encontrados no localStorage (' + parsed.length + ' itens)</div>');
+                    console.log('%c✅ Dados encontrados:', 'color: #27ae60;', parsed);
+                } catch(e) {
+                    results.push('<div class="status error">❌ Erro ao parsear dados de departamento: ' + e.message + '</div>');
+                    console.error('%c❌ Erro ao parsear:', 'color: #e74c3c;', e);
+                }
+            } else {
+                results.push('<div class="status error">❌ Nenhum dado de departamento em localStorage</div>');
+                console.error('%c❌ localStorage vazio', 'color: #e74c3c;');
+            }
+            
+            // 3. Verificar Função loadDepartments
+            console.log('%c[DIAG] 3. Verificando função loadDepartments()...', 'color: #3498db; font-weight: bold;');
+            if (typeof loadDepartments === 'function') {
+                const depts = loadDepartments();
+                results.push('<div class="status success">✅ Função loadDepartments() existe e retornou ' + depts.length + ' itens</div>');
+                console.log('%c✅ loadDepartments() retornou:', 'color: #27ae60;', depts);
+            } else {
+                results.push('<div class="status error">❌ Função loadDepartments() não existe</div>');
+                console.error('%c❌ loadDepartments não definida', 'color: #e74c3c;');
+            }
+            
+            // 4. Verificar CSS
+            console.log('%c[DIAG] 4. Verificando CSS/Visibilidade...', 'color: #3498db; font-weight: bold;');
+            if (select) {
+                const style = window.getComputedStyle(select);
+                const isVisible = style.display !== 'none' && style.visibility !== 'hidden';
+                if (isVisible) {
+                    results.push('<div class="status success">✅ Select está visível (não está hidden)</div>');
+                    console.log('%c✅ Select visível', 'color: #27ae60;');
+                } else {
+                    results.push('<div class="status error">❌ Select está hidden (display:none ou visibility:hidden)</div>');
+                    console.error('%c❌ Select não está visível', 'color: #e74c3c;');
+                }
+            }
+            
+            // 5. Verificar Funções JS
+            console.log('%c[DIAG] 5. Verificando funções JavaScript...', 'color: #3498db; font-weight: bold;');
+            const funcs = ['populateDepartmentSelect', 'populateEmployeeForm', 'initEmployeeFormListeners'];
+            funcs.forEach(fn => {
+                if (typeof window[fn] === 'function') {
+                    results.push('<div class="status success">✅ Função ' + fn + '() existe</div>');
+                    console.log('%c✅ ' + fn + ' existe', 'color: #27ae60;');
+                } else {
+                    results.push('<div class="status error">❌ Função ' + fn + '() NÃO existe</div>');
+                    console.error('%c❌ ' + fn + ' não definida', 'color: #e74c3c;');
+                }
+            });
+            
+            resultDiv.innerHTML = results.join('');
+            console.log('%c[DIAG] === FIM DOS DIAGNÓSTICOS ===', 'color: #9b59b6; font-weight: bold;');
+            
+            updateConsoleOutput();
+        }
+
+        function updateConsoleOutput() {
+            // Intercepta console.log
+            const original = console.log;
+            const outputs = [];
+            
+            console.log = function(...args) {
+                outputs.push(args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' '));
+                original.apply(console, args);
+            };
+            
+            // Restaura após um tempo
+            setTimeout(() => {
+                document.getElementById('console-output').textContent = outputs.join('\n');
+                console.log = original;
+            }, 100);
+        }
+
+        // Executar diagnósticos ao carregar
+        window.addEventListener('load', () => {
+            console.log('%c🔍 Página de Debug carregada. Clique em "Executar Diagnósticos Completos"', 'color: #3498db; font-weight: bold;');
+        });
+    </script>
+</body>
+</html>

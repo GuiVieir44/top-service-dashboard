@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>TESTE CONSULTA PONTO</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f0f0f0; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 20px; border-radius: 8px; }
+        h1 { color: #333; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
+        button:hover { background: #0056b3; }
+        select { width: 100%; padding: 10px; margin: 10px 0; font-size: 14px; }
+        label { display: block; margin: 15px 0 5px 0; font-weight: bold; }
+        .status { padding: 10px; background: #e8f5e9; border-left: 4px solid #4caf50; margin: 10px 0; border-radius: 4px; }
+        .error { background: #ffebee; border-left-color: #f44336; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow: auto; max-height: 300px; font-size: 12px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 TESTE - Consulta de Ponto</h1>
+        
+        <div class="status">
+            <strong>Status:</strong> <span id="status">Carregando...</span>
+        </div>
+        
+        <button onclick="step1()">1️⃣ Carregar Dados Padrão</button>
+        <button onclick="step2()">2️⃣ Inicializar Módulo</button>
+        <button onclick="checkStatus()">3️⃣ Verificar Status</button>
+        <button onclick="clearAll()">🗑️ Limpar</button>
+        
+        <hr style="margin: 20px 0;">
+        
+        <label>Departamento:</label>
+        <select id="punch-query-department-filter">
+            <option>-- Carregando --</option>
+        </select>
+        
+        <label>Funcionário:</label>
+        <select id="punch-query-employee-select">
+            <option>-- Carregando --</option>
+        </select>
+        
+        <h3>📋 Log:</h3>
+        <pre id="log"></pre>
+    </div>
+
+    <script>
+        let logMessages = [];
+        
+        function log(msg) {
+            logMessages.push(msg);
+            document.getElementById('log').textContent = logMessages.join('\n');
+            console.log(msg);
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+        
+        function clearLog() {
+            logMessages = [];
+            document.getElementById('log').textContent = '';
+        }
+        
+        function setStatus(msg, isError = false) {
+            const el = document.getElementById('status');
+            el.textContent = msg;
+            if (isError) {
+                el.parentElement.classList.add('error');
+            } else {
+                el.parentElement.classList.remove('error');
+            }
+        }
+        
+        function step1() {
+            clearLog();
+            log('📥 PASSO 1: Carregando dados padrão...\n');
+            
+            const employees = [
+                { id: 1, matricula: "MAT001", nome: "Ana Carolina Silva", departamento: "Condomínio A" },
+                { id: 2, matricula: "MAT002", nome: "Bruno Santos", departamento: "Condomínio A" },
+                { id: 3, matricula: "MAT003", nome: "Carla Mendes", departamento: "Condomínio B" },
+                { id: 4, matricula: "MAT004", nome: "Diego Ferreira", departamento: "Condomínio B" },
+                { id: 5, matricula: "MAT005", nome: "Elisa Rocha", departamento: "Transporte" }
+            ];
+            
+            localStorage.setItem('topservice_employees_v1', JSON.stringify(employees));
+            log(`✅ ${employees.length} funcionários salvos em localStorage`);
+            log('✅ Dados prontos para teste');
+            setStatus('✅ Dados carregados');
+        }
+        
+        function step2() {
+            clearLog();
+            log('🚀 PASSO 2: Inicializando módulo...\n');
+            
+            if (typeof initPunchQueryModule === 'function') {
+                log('✅ Função initPunchQueryModule encontrada');
+                try {
+                    initPunchQueryModule();
+                    log('✅ initPunchQueryModule() executada com sucesso');
+                    setStatus('✅ Módulo inicializado');
+                    
+                    setTimeout(() => {
+                        checkStatus();
+                    }, 100);
+                } catch(err) {
+                    log('❌ ERRO ao executar:', err.message);
+                    setStatus('❌ Erro ao inicializar', true);
+                }
+            } else {
+                log('❌ Função initPunchQueryModule NÃO foi encontrada!');
+                setStatus('❌ Função não encontrada', true);
+            }
+        }
+        
+        function checkStatus() {
+            clearLog();
+            log('🔍 VERIFICANDO STATUS\n');
+            
+            const deptSelect = document.getElementById('punch-query-department-filter');
+            const empSelect = document.getElementById('punch-query-employee-select');
+            
+            const deptOptions = deptSelect.options.length;
+            const empOptions = empSelect.options.length;
+            
+            log(`📊 Departamento Select:`);
+            log(`   - Encontrado: ✅`);
+            log(`   - Options: ${deptOptions}`);
+            if (deptOptions > 1) {
+                log(`   - Valores: ${Array.from(deptSelect.options).map(o => o.value).join(', ')}`);
+                log(`   - Labels: ${Array.from(deptSelect.options).map(o => o.text).join(', ')}`);
+            }
+            
+            log(`\n👤 Funcionário Select:`);
+            log(`   - Encontrado: ✅`);
+            log(`   - Options: ${empOptions}`);
+            if (empOptions > 1) {
+                log(`   - Primeiras opções:`);
+                for (let i = 0; i < Math.min(5, empOptions); i++) {
+                    log(`     - ${empSelect.options[i].text}`);
+                }
+            }
+            
+            if (deptOptions > 1 && empOptions > 1) {
+                setStatus('✅ TUDO OK - Selects preenchidos!');
+                log('\n🎉 SUCESSO! Os selects estão preenchidos e prontos para uso.');
+            } else {
+                setStatus('❌ Problema - Selects não preenchidos', true);
+                log('\n❌ Os selects ainda estão vazios!');
+            }
+        }
+        
+        function clearAll() {
+            clearLog();
+            localStorage.clear();
+            document.getElementById('punch-query-department-filter').innerHTML = '<option>-- Limpo --</option>';
+            document.getElementById('punch-query-employee-select').innerHTML = '<option>-- Limpo --</option>';
+            setStatus('🗑️ localStorage limpo');
+            log('✅ localStorage limpo e selects resetados');
+        }
+        
+        // Verificação inicial
+        window.addEventListener('load', function() {
+            log('✅ Página carregada');
+            log(`📦 initPunchQueryModule disponível: ${typeof initPunchQueryModule === 'function' ? 'SIM' : 'NÃO'}`);
+        });
+    </script>
+
+    <!-- Scripts necessários -->
+    <script src="scripts/data.js"></script>
+    <script src="scripts/consulta-ponto.js"></script>
+</body>
+</html>

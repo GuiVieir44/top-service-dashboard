@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste Consulta de Ponto</title>
+    <style>
+        body { font-family: Arial; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; }
+        button { padding: 10px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; margin: 10px 0; }
+        button:hover { background: #0056b3; }
+        select { padding: 8px; width: 100%; margin: 10px 0; font-size: 14px; }
+        .label { font-weight: bold; margin-top: 15px; }
+        .status { padding: 10px; background: #e3f2fd; border-left: 4px solid #2196f3; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Teste Consulta de Ponto</h1>
+        
+        <button onclick="testInit()">Inicializar Módulo</button>
+        <button onclick="testStorage()">Verificar localStorage</button>
+        <button onclick="testElements()">Procurar Elementos</button>
+        <button onclick="clearConsole()">Limpar Console</button>
+        
+        <div class="label">Departamento:</div>
+        <select id="punch-query-department-filter">
+            <option>-- Selecione departamento --</option>
+        </select>
+        
+        <div class="label">Funcionário:</div>
+        <select id="punch-query-employee-select">
+            <option>-- Selecione funcionário --</option>
+        </select>
+        
+        <div id="status" class="status">Status: Aguardando ações...</div>
+        <pre id="output" style="background: #f9f9f9; padding: 10px; border: 1px solid #ddd; max-height: 400px; overflow-y: auto;"></pre>
+    </div>
+
+    <script>
+        let output_log = [];
+        
+        function log(msg) {
+            console.log(msg);
+            output_log.push(msg);
+            document.getElementById('output').textContent = output_log.join('\n');
+        }
+        
+        function clearConsole() {
+            output_log = [];
+            document.getElementById('output').textContent = '';
+            log('✅ Console limpo');
+        }
+        
+        function testStorage() {
+            log('\n=== TESTE DE STORAGE ===');
+            const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+            const depts = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
+            
+            log(`👥 Funcionários no localStorage: ${employees.length}`);
+            log(`📊 Departamentos no localStorage: ${depts.length}`);
+            
+            if (employees.length > 0) {
+                log('Primeiro funcionário:', JSON.stringify(employees[0]));
+            }
+            if (depts.length > 0) {
+                log('Primeiro departamento:', JSON.stringify(depts[0]));
+            }
+        }
+        
+        function testElements() {
+            log('\n=== TESTE DE ELEMENTOS ===');
+            const empSelect = document.getElementById('punch-query-employee-select');
+            const deptFilter = document.getElementById('punch-query-department-filter');
+            
+            log(`Elemento empSelect encontrado: ${empSelect ? '✅ SIM' : '❌ NÃO'}`);
+            log(`Elemento deptFilter encontrado: ${deptFilter ? '✅ SIM' : '❌ NÃO'}`);
+            
+            if (empSelect) {
+                log(`Options em empSelect: ${empSelect.options.length}`);
+            }
+            if (deptFilter) {
+                log(`Options em deptFilter: ${deptFilter.options.length}`);
+            }
+        }
+        
+        function testInit() {
+            log('\n=== INICIANDO MÓDULO ===');
+            if (typeof initPunchQueryModule === 'function') {
+                log('✅ initPunchQueryModule é uma função');
+                initPunchQueryModule();
+                
+                setTimeout(function() {
+                    testElements();
+                    testStorage();
+                }, 100);
+            } else {
+                log('❌ initPunchQueryModule não é uma função!');
+                log('Tipo:', typeof initPunchQueryModule);
+            }
+        }
+        
+        // Carregar scripts de teste
+        log('Carregando scripts...\n');
+    </script>
+
+    <!-- Incluir os scripts necessários -->
+    <script src="scripts/toast.js"></script>
+    <script src="scripts/consulta-ponto.js"></script>
+    
+    <script>
+        log('✅ Scripts carregados');
+        log(`initPunchQueryModule tipo: ${typeof initPunchQueryModule}`);
+    </script>
+</body>
+</html>

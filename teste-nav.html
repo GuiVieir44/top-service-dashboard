@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Navegação</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .nav-links { list-style: none; padding: 0; }
+        .nav-item { padding: 10px; margin: 5px 0; background: #ddd; cursor: pointer; border: none; }
+        .nav-item.active { background: #4CAF50; color: white; }
+        .page { display: none; padding: 20px; border: 1px solid #ccc; margin-top: 20px; }
+        .page.active { display: block; }
+    </style>
+</head>
+<body>
+    <h1>Teste de Navegação</h1>
+    
+    <nav>
+        <ul class="nav-links">
+            <li><button class="nav-item" data-page="page1">Página 1</button></li>
+            <li><button class="nav-item" data-page="page2">Página 2</button></li>
+            <li><button class="nav-item" data-page="page3">Página 3</button></li>
+        </ul>
+    </nav>
+
+    <div id="content">
+        <div class="page" id="page1-content">Conteúdo Página 1</div>
+        <div class="page" id="page2-content">Conteúdo Página 2</div>
+        <div class="page" id="page3-content">Conteúdo Página 3</div>
+    </div>
+
+    <script>
+        console.log('🧪 TESTE NAVEGAÇÃO');
+
+        class SimpleNav {
+            constructor() {
+                console.log('🎯 SimpleNav criado');
+                this.setupListeners();
+            }
+
+            setupListeners() {
+                const navLinks = document.querySelector('.nav-links');
+                console.log('✅ nav-links encontrado');
+
+                navLinks.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button.nav-item');
+                    if (btn && btn.dataset.page) {
+                        console.log(`🖱️ Clicado em: ${btn.dataset.page}`);
+                        this.showPage(btn.dataset.page);
+                    }
+                });
+            }
+
+            showPage(pageId) {
+                console.log(`📄 Mostrando página: ${pageId}`);
+                document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+                document.getElementById(pageId + '-content').classList.add('active');
+                document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`[data-page="${pageId}"]`).classList.add('active');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('📄 DOM Pronto');
+            new SimpleNav();
+        });
+    </script>
+</body>
+</html>

@@ -2,117 +2,314 @@
 // DADOS DO SISTEMA TOP SERVICE
 // ==========================================
 
-// Array de funcionários com a estrutura completa
+/**
+ * @typedef {Object} Employee
+ * @property {number} id - ID único do funcionário
+ * @property {string} matricula - Matrícula (ex: MAT001)
+ * @property {string} nome - Nome completo
+ * @property {string} cpf - CPF formatado
+ * @property {string} cargo - Cargo/Posição
+ * @property {string} departamento - Departamento/Condomínio
+ * @property {string} email - Email corporativo
+ * @property {string} status - Status (Ativo, Desligado, Férias, Afastado)
+ * @property {string} admissao - Data de admissão (YYYY-MM-DD)
+ * @property {string} telefone - Telefone de contato
+ * @property {string} endereco - Endereço residencial
+ */
+
+// Array de funcionários padrão com estrutura completa
 const employeesData = [
     {
         id: 1,
-        matricula: "MAT001",           // Identificador único do funcionário (login futuro)
+        matricula: "MAT001",
         nome: "Ana Carolina Silva",
-        cpf: "123.456.789-00",         // CPF do funcionário
+        cpf: "123.456.789-00",
         cargo: "Gerente de Projetos",
-        departamento: "Condomínio A",  // Departamento/Condomínio
+        departamento: "Condomínio A",
         email: "ana.silva@topservice.com",
-        status: "Ativo",               // Ativo ou Desligado
-        admissao: "2020-05-15",        // Data de admissão
-        telefone: "(11) 98765-4321",   // Telefone para contato
-        endereco: "Rua A, 123"         // Endereço
+        status: "Ativo",
+        admissao: "2020-05-15",
+        telefone: "(11) 98765-4321",
+        endereco: "Rua A, 123"
     },
-    // ... mais funcionários ...
+    {
+        id: 2,
+        matricula: "MAT002",
+        nome: "Bruno Santos Oliveira",
+        cpf: "234.567.890-11",
+        cargo: "Coordenador de Limpeza",
+        departamento: "Condomínio A",
+        email: "bruno.santos@topservice.com",
+        status: "Ativo",
+        admissao: "2020-08-20",
+        telefone: "(11) 98765-4322",
+        endereco: "Rua B, 456"
+    },
+    {
+        id: 3,
+        matricula: "MAT003",
+        nome: "Carla Mendes Costa",
+        cpf: "345.678.901-22",
+        cargo: "Assistente Administrativo",
+        departamento: "Condomínio B",
+        email: "carla.mendes@topservice.com",
+        status: "Ativo",
+        admissao: "2021-03-10",
+        telefone: "(11) 98765-4323",
+        endereco: "Rua C, 789"
+    },
+    {
+        id: 4,
+        matricula: "MAT004",
+        nome: "Diego Ferreira Gomes",
+        cpf: "456.789.012-33",
+        cargo: "Gerente de Operações",
+        departamento: "Condomínio B",
+        email: "diego.ferreira@topservice.com",
+        status: "Ativo",
+        admissao: "2019-11-05",
+        telefone: "(11) 98765-4324",
+        endereco: "Rua D, 321"
+    },
+    {
+        id: 5,
+        matricula: "MAT005",
+        nome: "Elisa Rocha Martins",
+        cpf: "567.890.123-44",
+        cargo: "Motorista",
+        departamento: "Transporte",
+        email: "elisa.rocha@topservice.com",
+        status: "Ativo",
+        admissao: "2020-02-15",
+        telefone: "(11) 98765-4325",
+        endereco: "Rua E, 654"
+    },
+    {
+        id: 6,
+        matricula: "MAT006",
+        nome: "Felipe Alves Silva",
+        cpf: "678.901.234-55",
+        cargo: "Técnico de Manutenção",
+        departamento: "Manutenção",
+        email: "felipe.alves@topservice.com",
+        status: "Ativo",
+        admissao: "2021-06-01",
+        telefone: "(11) 98765-4326",
+        endereco: "Rua F, 987"
+    }
 ];
 
+// ===== Constantes de Persistência =====
+const EMP_KEY = 'topservice_employees_v1';
+const VALID_STATUSES = ['Ativo', 'Desligado', 'Férias', 'Afastado'];
+
+// ===== DEBOUNCING =====
+let saveEmployeesTimeout = null;
+const SAVE_DEBOUNCE_DELAY = 300; // ms
+
+/**
+ * Agenda salvamento com debounce
+ */
+function scheduleSaveEmployees() {
+    if (saveEmployeesTimeout) {
+        clearTimeout(saveEmployeesTimeout);
+    }
+    
+    saveEmployeesTimeout = setTimeout(() => {
+        performSaveEmployees();
+    }, SAVE_DEBOUNCE_DELAY);
+}
+
+/**
+ * Executa o salvamento real
+ */
+function performSaveEmployees() {
+    try {
+        localStorage.setItem(EMP_KEY, JSON.stringify(employees));
+        window.employees = employees; // Manter sincronizado
+        
+        // Notificar persistência global
+        if (typeof window.scheduleDebouncedsave === 'function') {
+            window.scheduleDebouncedsave();
+        }
+        
+        // Disparar evento para UI
+        window.dispatchEvent(new CustomEvent('employeesChanged', { detail: { count: employees.length } }));
+        
+        console.log('✅ Funcionários salvos com debounce -', employees.length, 'registros');
+    } catch (e) {
+        console.error('Erro ao salvar funcionários:', e);
+    }
+}
+
 // Variável global que armazena todos os funcionários
-let employees = [...employeesData];
+let employees = [];
+
+/**
+ * Inicializa o sistema de dados, carregando funcionários do localStorage ou usando defaults
+ */
+function initializeEmployeesData() {
+    try {
+        const stored = localStorage.getItem(EMP_KEY);
+        employees = stored ? JSON.parse(stored) : [...employeesData];
+        localStorage.setItem(EMP_KEY, JSON.stringify(employees));
+        window.employees = employees; // Sincronizar variável global
+        console.log('✅ Funcionários carregados:', employees.length);
+    } catch (e) {
+        console.error('Erro ao carregar employees do localStorage, usando defaults:', e);
+        employees = [...employeesData];
+        window.employees = employees;
+    }
+}
+
+/**
+ * Persiste a lista de funcionários no localStorage
+ * @throws {Error} Se houver erro ao salvar
+ */
+function saveEmployees() {
+    // Apenas agenda com debounce, não salva diretamente
+    scheduleSaveEmployees();
+}
+
+// Inicializar dados ao carregar o script
+initializeEmployeesData();
+
 /**
  * Obtém a lista completa de funcionários
- * @returns {Array} Array com todos os funcionários
+ * @returns {Employee[]} Array com todos os funcionários
  */
 function getEmployees() {
-    return employees;
+    return [...employees]; // Retorna cópia para evitar mutação externa
 }
 
 /**
  * Obtém o total de funcionários cadastrados
- * @returns {Number} Quantidade de funcionários
+ * @returns {number} Quantidade de funcionários
  */
 function getTotalEmployees() {
     return employees.length;
 }
 
 /**
- * Obtém um funcionário específico pelo ID
- * @param {Number} id - ID do funcionário
- * @returns {Object} Dados do funcionário ou null se não encontrado
+ * Obtém um funcionário específico pelo ID com validação
+ * @param {number} id - ID do funcionário
+ * @returns {Employee|null} Dados do funcionário ou null se não encontrado
  */
 function getEmployeeById(id) {
+    if (!Number.isInteger(id) || id <= 0) return null;
     return employees.find(emp => emp.id === id) || null;
 }
+
 /**
- * Adiciona um novo funcionário ao array
+ * Valida estrutura de dados do funcionário
+ * @param {Object} employee - Dados do funcionário a validar
+ * @returns {Object} { valid: boolean, errors: string[] }
+ */
+function validateEmployee(employee) {
+    const errors = [];
+    
+    if (!employee.nome || typeof employee.nome !== 'string' || employee.nome.trim() === '') 
+        errors.push('Nome é obrigatório');
+    if (!employee.matricula || typeof employee.matricula !== 'string') 
+        errors.push('Matrícula é obrigatória');
+    // Email é opcional agora
+    if (employee.email && !employee.email.includes('@')) 
+        errors.push('Email inválido');
+    // Departamento é opcional agora
+    if (!VALID_STATUSES.includes(employee.status)) 
+        errors.push(`Status deve ser um de: ${VALID_STATUSES.join(', ')}`);
+    
+    return { 
+        valid: errors.length === 0, 
+        errors 
+    };
+}
+
+/**
+ * Adiciona um novo funcionário com validação
  * @param {Object} employee - Dados do novo funcionário
- * @returns {Object} O funcionário adicionado com ID gerado
+ * @returns {Employee|null} O funcionário adicionado ou null se inválido
  */
 function addEmployee(employee) {
-    // Gera um novo ID (maior ID atual + 1)
+    console.log('➕ addEmployee() INICIADO com:', employee);
+    const validation = validateEmployee(employee);
+    if (!validation.valid) {
+        console.warn('❌ Erro ao adicionar funcionário:', validation.errors);
+        return null;
+    }
+    
     const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
     
-    // Cria o novo funcionário com o ID gerado
     const newEmployee = {
         id: newId,
-        ...employee  // Copia todos os dados do employee passado
+        ...employee,
+        status: employee.status || 'Ativo'
     };
     
-    // Adiciona ao array
+    console.log('📌 Novo funcionário criado com ID:', newId);
     employees.push(newEmployee);
+    console.log('📊 Total funcionários antes de salvar:', employees.length);
     
-    // Retorna o novo funcionário
+    // Usar debounce aqui
+    saveEmployees();
+    console.log('✅ addEmployee() CONCLUÍDO com sucesso');
     return newEmployee;
 }
 
 /**
- * Atualiza os dados de um funcionário existente
- * @param {Number} id - ID do funcionário a atualizar
- * @param {Object} updatedData - Novos dados do funcionário
- * @returns {Boolean} true se atualizado com sucesso, false se não encontrado
+ * Atualiza dados de um funcionário existente com validação
+ * @param {number} id - ID do funcionário
+ * @param {Object} updatedData - Novos dados (apenas campos a atualizar)
+ * @returns {Employee|null} Funcionário atualizado ou null se falhar
  */
 function updateEmployee(id, updatedData) {
     const index = employees.findIndex(emp => emp.id === id);
     
-    if (index !== -1) {
-        // Mantém o ID original e atualiza o resto dos dados
-        employees[index] = {
-            ...employees[index],
-            ...updatedData,
-            id: employees[index].id  // Garante que o ID não mude
-        };
-        return true;
+    if (index === -1) {
+        console.warn(`Funcionário com ID ${id} não encontrado`);
+        return null;
     }
     
-    return false;
+    const updated = { ...employees[index], ...updatedData, id };
+    const validation = validateEmployee(updated);
+    
+    if (!validation.valid) {
+        console.warn('Dados inválidos para atualização:', validation.errors);
+        return null;
+    }
+    
+    employees[index] = updated;
+    saveEmployees();
+    return updated;
 }
 
 /**
- * Remove um funcionário do array
- * @param {Number} id - ID do funcionário a remover
- * @returns {Boolean} true se removido com sucesso, false se não encontrado
+ * Remove um funcionário pelo ID
+ * @param {number} id - ID do funcionário
+ * @returns {boolean} true se removido, false se não encontrado
  */
 function deleteEmployee(id) {
     const index = employees.findIndex(emp => emp.id === id);
     
-    if (index !== -1) {
-        employees.splice(index, 1);  // Remove 1 elemento a partir do índice
-        return true;
+    if (index === -1) {
+        console.warn(`Funcionário com ID ${id} não encontrado`);
+        return false;
     }
     
-    return false;
+    employees.splice(index, 1);
+    saveEmployees();
+    return true;
 }
 
 /**
- * Busca funcionários por um termo (nome, matrícula, email)
- * @param {String} searchTerm - Termo a buscar
- * @returns {Array} Array com funcionários que correspondem à busca
+ * Busca funcionários por termo (nome, matrícula, email, CPF)
+ * @param {string} searchTerm - Termo de busca (case-insensitive)
+ * @returns {Employee[]} Array com funcionários encontrados
  */
 function searchEmployees(searchTerm) {
-    const term = searchTerm.toLowerCase();
+    if (!searchTerm || typeof searchTerm !== 'string') return [];
+    
+    const term = searchTerm.toLowerCase().trim();
     
     return employees.filter(emp => 
         emp.nome.toLowerCase().includes(term) ||
@@ -123,8 +320,8 @@ function searchEmployees(searchTerm) {
 }
 
 /**
- * Obtém todos os departamentos únicos
- * @returns {Array} Array com nomes dos departamentos
+ * Obtém departamentos únicos ordenados alfabeticamente
+ * @returns {string[]} Array de nomes de departamentos
  */
 function getDepartments() {
     const departments = [...new Set(employees.map(emp => emp.departamento))];
@@ -136,8 +333,11 @@ function getDepartments() {
  * @returns {Object} Objeto com contagem por status
  */
 function getEmployeesByStatus() {
-    return {
-        ativo: employees.filter(emp => emp.status === "Ativo").length,
-        desligado: employees.filter(emp => emp.status === "Desligado").length
-    };
+    const result = {};
+    
+    VALID_STATUSES.forEach(status => {
+        result[status.toLowerCase()] = employees.filter(emp => emp.status === status).length;
+    });
+    
+    return result;
 }
