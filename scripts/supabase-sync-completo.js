@@ -13,6 +13,16 @@
     let isConnected = false;
     let syncInProgress = false;
     let lastSync = 0;
+    let lastRemoteIds = {
+        employees: new Set(),
+        punches: new Set(),
+        afastamentos: new Set(),
+        departamentos: new Set(),
+        cargos: new Set(),
+        ausencias: new Set(),
+        configuracoes: new Set(),
+        users: new Set()
+    };
 
     // ===== LOGGING =====
     const Log = {
@@ -139,7 +149,38 @@
     }
 
     /**
-     * Sincroniza TODOS os dados
+     * Sincroniza deleções (apaga do Supabase o que foi deletado localmente)
+     */
+    async function syncDeletions(tableName, localIds) {
+        try {
+            const remoteData = await supabaseRequest('GET', tableName);
+            const remoteIds = new Set(remoteData.map(r => r.id));
+            const currentLocalIds = new Set(localIds);
+
+            // Encontrar IDs que estão no remoto mas não estão no local (foram deletados)
+            const idsToDelete = [...remoteIds].filter(id => !currentLocalIds.has(id));
+
+            if (idsToDelete.length === 0) {
+                return;
+            }
+
+            console.log(`🗑️ Deletando ${idsToDelete.length} registros de ${tableName}`);
+
+            for (const id of idsToDelete) {
+                try {
+                    await supabaseRequest('DELETE', tableName, null, `id=eq.${id}`);
+                    console.log(`✅ Deletado ${tableName} id=${id}`);
+                } catch (e) {
+                    console.log(`⚠️ Erro ao deletar ${tableName} id=${id}: ${e.message}`);
+                }
+            }
+        } catch (e) {
+            console.error(`Erro ao sincronizar deleções de ${tableName}: ${e.message}`);
+        }
+    }
+
+    /**
+     * Sincroniza TODOS os dados + deleções
      */
     async function syncAllDataComplete() {
         if (syncInProgress || !isConnected) return;
@@ -154,6 +195,7 @@
                 ['id', 'matricula', 'nome', 'cargo', 'departamento', 'adicional', 'vale_alimentacao', 'vale_transporte', 'cpf', 'email', 'admissao', 'telefone', 'endereco', 'status'])) {
                 successCount++;
             }
+            await syncDeletions('employees', employees.map(e => e.id));
 
             // 2. PUNCHES
             const punches = (window.punches || []).map(p => ({
@@ -166,6 +208,7 @@
             if (await syncTable('punches', punches, ['id', 'employeeid', 'type', 'timestamp', 'status'])) {
                 successCount++;
             }
+            await syncDeletions('punches', punches.map(p => p.id));
 
             // 3. AFASTAMENTOS
             const afastamentos = (window.afastamentos || []).map(a => ({
@@ -180,18 +223,21 @@
                 ['id', 'employeeid', 'start_date', 'end_date', 'days', 'type'])) {
                 successCount++;
             }
+            await syncDeletions('afastamentos', afastamentos.map(a => a.id));
 
             // 4. DEPARTAMENTOS
             const departamentos = window.departamentos || [];
             if (await syncTable('departamentos', departamentos, ['id', 'name', 'description'])) {
                 successCount++;
             }
+            await syncDeletions('departamentos', departamentos.map(d => d.id));
 
             // 5. CARGOS
             const cargos = JSON.parse(localStorage.getItem('topservice_cargos_v1') || '[]');
             if (await syncTable('cargos', cargos, ['id', 'nome'])) {
                 successCount++;
             }
+            await syncDeletions('cargos', cargos.map(c => c.id));
 
             // 6. AUSENCIAS
             const ausenciasRaw = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
@@ -205,6 +251,7 @@
             if (await syncTable('ausencias', ausencias, ['id', 'employeeid', 'data', 'tipo', 'observacoes'])) {
                 successCount++;
             }
+            await syncDeletions('ausencias', ausencias.map(a => a.id));
 
             // 7. CONFIGURACOES (SETTINGS)
             const settings = JSON.parse(localStorage.getItem('SETTINGS_KEY') || '{}');
@@ -223,6 +270,7 @@
             if (await syncTable('users', users, ['id', 'nome', 'email', 'senha', 'role', 'ativo'])) {
                 successCount++;
             }
+            await syncDeletions('users', users.map(u => u.id));
 
             lastSync = Date.now();
             return true;
