@@ -94,6 +94,39 @@ function renderInstantlyForKey(key) {
             setTimeout(() => renderBancoHoras(), 10);
         }
     }
+
+    // RELATORIOS
+    if (key.includes('relatorio') || key === 'topservice_relatorios_v1') {
+        if (typeof renderRelatorios === 'function') {
+            setTimeout(() => renderRelatorios(), 10);
+        }
+        if (typeof loadRelatorioDepartamento === 'function') {
+            setTimeout(() => loadRelatorioDepartamento(), 10);
+        }
+        if (typeof loadRelatorioFechamento === 'function') {
+            setTimeout(() => loadRelatorioFechamento(), 10);
+        }
+        if (typeof loadRelatorioFerias === 'function') {
+            setTimeout(() => loadRelatorioFerias(), 10);
+        }
+    }
+
+    // CONFIGURAÇÕES
+    if (key.includes('configuracao') || key === 'topservice_configuracoes_v1') {
+        if (typeof renderConfiguracoes === 'function') {
+            setTimeout(() => renderConfiguracoes(), 10);
+        }
+        if (typeof loadSettings === 'function') {
+            setTimeout(() => loadSettings(), 10);
+        }
+    }
+
+    // CARGO_DEPARTAMENTO
+    if (key.includes('cargo_departamento') || key === 'topservice_cargo_departamento_v1') {
+        if (typeof renderCargoDepartamento === 'function') {
+            setTimeout(() => renderCargoDepartamento(), 10);
+        }
+    }
     
     // DASHBOARD / GRÁFICOS
     if (key.includes('employee') || key.includes('punch') || key.includes('extra') || key.includes('atraso')) {

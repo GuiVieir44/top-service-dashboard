@@ -43,7 +43,7 @@ CREATE TABLE IF NOT EXISTS punches (
     status TEXT DEFAULT 'active',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(employeeid) REFERENCES employees(id)
+    FOREIGN KEY(employeeid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
 -- 4. TABELA AFASTAMENTOS (FALTAS/AUSÊNCIAS)
@@ -51,13 +51,13 @@ CREATE TABLE IF NOT EXISTS punches (
 CREATE TABLE IF NOT EXISTS afastamentos (
     id TEXT PRIMARY KEY,
     employeeid TEXT NOT NULL,
-    start_date TEXT NOT NULL,
-    end_date TEXT NOT NULL,
+    start_date TEXT,
+    end_date TEXT,
     days INTEGER,
     type TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(employeeid) REFERENCES employees(id)
+    FOREIGN KEY(employeeid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
 -- 5. TABELA CARGOS (POSIÇÕES/FUNÇÕES)
@@ -97,13 +97,13 @@ CREATE TABLE IF NOT EXISTS ausencias (
 CREATE TABLE IF NOT EXISTS banco_horas (
     id TEXT PRIMARY KEY,
     employeeid TEXT NOT NULL,
-    data TEXT NOT NULL,
+    data TEXT,
     horas DECIMAL(5,2),
     tipo TEXT,
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(employeeid) REFERENCES employees(id)
+    FOREIGN KEY(employeeid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
 -- 9. TABELA ADIANTAMENTOS
@@ -117,7 +117,7 @@ CREATE TABLE IF NOT EXISTS adiantamentos (
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(employeeid) REFERENCES employees(id)
+    FOREIGN KEY(employeeid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
 -- 10. TABELA USERS (USUÁRIOS/LOGINS)
@@ -145,7 +145,7 @@ CREATE TABLE IF NOT EXISTS ferias (
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(employeeid) REFERENCES employees(id)
+    FOREIGN KEY(employeeid) REFERENCES employees(id) ON DELETE CASCADE
 );
 
 -- 12. TABELA RELATORIOS (HISTÓRICO DE RELATÓRIOS GERADOS)
@@ -215,10 +215,12 @@ CREATE POLICY "Allow anonymous delete" ON afastamentos FOR DELETE USING (true);
 CREATE POLICY "Allow anonymous read" ON departamentos FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert" ON departamentos FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anonymous update" ON departamentos FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete" ON departamentos FOR DELETE USING (true);
 
 CREATE POLICY "Allow anonymous read" ON cargos FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert" ON cargos FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anonymous update" ON cargos FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete" ON cargos FOR DELETE USING (true);
 
 CREATE POLICY "Allow anonymous read" ON configuracoes FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert" ON configuracoes FOR INSERT WITH CHECK (true);
@@ -243,9 +245,14 @@ CREATE POLICY "Allow anonymous update" ON users FOR UPDATE USING (true);
 CREATE POLICY "Allow anonymous read" ON ferias FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert" ON ferias FOR INSERT WITH CHECK (true);
 CREATE POLICY "Allow anonymous update" ON ferias FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete" ON ferias FOR DELETE USING (true);
 
 CREATE POLICY "Allow anonymous read" ON relatorios FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert" ON relatorios FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous update" ON relatorios FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete" ON relatorios FOR DELETE USING (true);
 
 CREATE POLICY "Allow anonymous read" ON cargo_departamento FOR SELECT USING (true);
 CREATE POLICY "Allow anonymous insert" ON cargo_departamento FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow anonymous update" ON cargo_departamento FOR UPDATE USING (true);
+CREATE POLICY "Allow anonymous delete" ON cargo_departamento FOR DELETE USING (true);

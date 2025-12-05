@@ -203,7 +203,7 @@
         }
     }
 
-    // ===== SYNC COMPLETO =====
+    // ===== SYNC COMPLETO (13 TABELAS) =====
     async function syncAllData() {
         if (syncInProgress || !isConnected) {
             console.log('⏳ Sync já em andamento ou não conectado');
@@ -211,11 +211,15 @@
         }
 
         syncInProgress = true;
-        console.log('🔄 Iniciando sincronização completa...');
+        console.log('🔄 Iniciando sincronização completa de 13 tabelas...');
 
         try {
-            // Preparar dados com normalização
+            // ===== 1. EMPLOYEES =====
             const employees = window.employees || [];
+            await smartSync('employees', employees, 
+                ['id', 'matricula', 'nome', 'cargo', 'departamento', 'adicional', 'vale_alimentacao', 'vale_transporte', 'cpf', 'email', 'admissao', 'telefone', 'endereco', 'status']);
+
+            // ===== 2. PUNCHES =====
             const punches = (window.punches || []).map(p => ({
                 id: p.id,
                 employeeid: p.employeeId || p.employeeid,
@@ -223,8 +227,9 @@
                 timestamp: p.timestamp,
                 status: p.status || 'active'
             }));
-            const punches_fields = ['id', 'employeeid', 'type', 'timestamp', 'status'];
-            
+            await smartSync('punches', punches, ['id', 'employeeid', 'type', 'timestamp', 'status']);
+
+            // ===== 3. AFASTAMENTOS =====
             const afastamentos = (window.afastamentos || []).map(a => ({
                 id: a.id,
                 employeeid: a.employeeId || a.employeeid,
@@ -233,11 +238,17 @@
                 days: a.days,
                 type: a.type
             }));
-            const afastamentos_fields = ['id', 'employeeid', 'start_date', 'end_date', 'days', 'type'];
+            await smartSync('afastamentos', afastamentos, ['id', 'employeeid', 'start_date', 'end_date', 'days', 'type']);
 
+            // ===== 4. DEPARTAMENTOS =====
             const departamentos = window.departamentos || [];
+            await smartSync('departamentos', departamentos, ['id', 'name', 'description']);
+
+            // ===== 5. CARGOS =====
             const cargos = JSON.parse(localStorage.getItem('topservice_cargos_v1') || '[]');
-            
+            await smartSync('cargos', cargos, ['id', 'nome']);
+
+            // ===== 6. AUSENCIAS =====
             const ausenciasRaw = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
             const ausencias = ausenciasRaw.map(a => ({
                 id: a.id,
@@ -246,22 +257,68 @@
                 tipo: a.tipo,
                 observacoes: a.observacoes
             }));
-            const ausencias_fields = ['id', 'employeeid', 'data', 'tipo', 'observacoes'];
+            await smartSync('ausencias', ausencias, ['id', 'employeeid', 'data', 'tipo', 'observacoes']);
 
+            // ===== 7. USERS =====
             const users = JSON.parse(localStorage.getItem('topservice_users_v1') || '[]');
-
-            // Sincronizar com smart sync
-            await smartSync('employees', employees, 
-                ['id', 'matricula', 'nome', 'cargo', 'departamento', 'adicional', 'vale_alimentacao', 'vale_transporte', 'cpf', 'email', 'admissao', 'telefone', 'endereco', 'status']);
-            await smartSync('punches', punches, punches_fields);
-            await smartSync('afastamentos', afastamentos, afastamentos_fields);
-            await smartSync('departamentos', departamentos, ['id', 'name', 'description']);
-            await smartSync('cargos', cargos, ['id', 'nome']);
-            await smartSync('ausencias', ausencias, ausencias_fields);
             await smartSync('users', users, ['id', 'nome', 'email', 'senha', 'role', 'ativo']);
 
+            // ===== 8. CONFIGURACOES =====
+            const configuracoes = JSON.parse(localStorage.getItem('topservice_configuracoes_v1') || '[]');
+            await smartSync('configuracoes', configuracoes, ['id', 'chave', 'valor', 'tipo']);
+
+            // ===== 9. BANCO_HORAS =====
+            const bancoHoras = JSON.parse(localStorage.getItem('topservice_banco_horas_v1') || '[]');
+            const bancoHorasNorm = (bancoHoras || []).map(b => ({
+                id: b.id,
+                employeeid: b.employeeId || b.employeeid,
+                data: b.data,
+                horas: b.horas,
+                tipo: b.tipo
+            }));
+            await smartSync('banco_horas', bancoHorasNorm, ['id', 'employeeid', 'data', 'horas', 'tipo']);
+
+            // ===== 10. ADIANTAMENTOS =====
+            const adiantamentos = JSON.parse(localStorage.getItem('topservice_adiantamentos_v1') || '[]');
+            const adiantamentosNorm = (adiantamentos || []).map(ad => ({
+                id: ad.id,
+                employeeid: ad.employeeId || ad.employeeid,
+                data: ad.data,
+                valor: ad.valor,
+                status: ad.status
+            }));
+            await smartSync('adiantamentos', adiantamentosNorm, ['id', 'employeeid', 'data', 'valor', 'status']);
+
+            // ===== 11. FERIAS =====
+            const ferias = JSON.parse(localStorage.getItem('topservice_ferias_v1') || '[]');
+            const feriasNorm = (ferias || []).map(f => ({
+                id: f.id,
+                employeeid: f.employeeId || f.employeeid,
+                data_inicio: f.dataInicio || f.data_inicio,
+                data_fim: f.dataFim || f.data_fim,
+                dias: f.dias,
+                ano: f.ano
+            }));
+            await smartSync('ferias', feriasNorm, ['id', 'employeeid', 'data_inicio', 'data_fim', 'dias', 'ano']);
+
+            // ===== 12. RELATORIOS =====
+            const relatorios = JSON.parse(localStorage.getItem('topservice_relatorios_v1') || '[]');
+            const relatoriosNorm = (relatorios || []).map(r => ({
+                id: r.id,
+                tipo: r.tipo,
+                employeeid: r.employeeId || r.employeeid,
+                mes: r.mes,
+                ano: r.ano,
+                dados: typeof r.dados === 'string' ? r.dados : JSON.stringify(r.dados)
+            }));
+            await smartSync('relatorios', relatoriosNorm, ['id', 'tipo', 'employeeid', 'mes', 'ano', 'dados']);
+
+            // ===== 13. CARGO_DEPARTAMENTO =====
+            const cargoDepartamento = JSON.parse(localStorage.getItem('topservice_cargo_departamento_v1') || '[]');
+            await smartSync('cargo_departamento', cargoDepartamento, ['id', 'departamento', 'cargo']);
+
             lastSync = Date.now();
-            console.log('✅ Sincronização completa finalizada!');
+            console.log('✅ Sincronização completa de 13 tabelas finalizada!');
             return true;
         } catch (e) {
             console.error(`❌ Erro na sincronização: ${e.message}`);
