@@ -332,6 +332,11 @@
 
             lastSaveTime = Date.now();
 
+            // 🔥 SYNC INSTANTÂNEO COM SUPABASE
+            if (typeof window.supabaseSync !== 'undefined' && typeof window.supabaseSync.syncAllData === 'function') {
+                window.supabaseSync.syncAllData().catch(e => console.error('Erro no sync:', e));
+            }
+
         } catch (e) {
             saveStats.failedSaves++;
             Log.error('Erro crítico ao executar safeSaveAll:', e);

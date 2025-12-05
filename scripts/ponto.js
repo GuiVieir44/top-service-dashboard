@@ -34,8 +34,13 @@ function performSavePunches(punches) {
         if (typeof window.scheduleDebouncedsave === 'function') {
             window.scheduleDebouncedsave();
         }
+
+        // 🔥 SYNC INSTANTÂNEO COM SUPABASE
+        if (typeof window.supabaseSync !== 'undefined' && typeof window.supabaseSync.syncAllData === 'function') {
+            window.supabaseSync.syncAllData().catch(e => console.error('Erro no sync:', e));
+        }
         
-        console.log('✅ Pontos salvos com debounce -', punches.length, 'registros');
+        console.log('✅ Pontos salvos e sincronizados -', punches.length, 'registros');
     } catch (e) {
         console.error('Erro ao salvar punches:', e);
     }
@@ -119,6 +124,11 @@ function registerPunch(employeeId, type, rf = null) {
         var saved = loadPunches();
         if (saved.some(p => p.id === punch.id)) {
             console.log('%c[PUNCH] ✅ Ponto registrado', 'color: #27ae60;', punch);
+            
+            // 🔥 RENDERIZAR TABELA IMEDIATAMENTE
+            if (typeof renderPunches === 'function') {
+                renderPunches();
+            }
             
             // Atualizar adiantamentos se for entrada
             if (type === 'Entrada') {
