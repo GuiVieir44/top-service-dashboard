@@ -84,13 +84,12 @@ CREATE TABLE IF NOT EXISTS configuracoes (
 -- Armazena: id, employeeid, data, tipo
 CREATE TABLE IF NOT EXISTS ausencias (
     id TEXT PRIMARY KEY,
-    employeeid TEXT NOT NULL,
-    data TEXT NOT NULL,
+    employeeid TEXT,
+    data TEXT,
     tipo TEXT,
     observacoes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(employeeid) REFERENCES employees(id)
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- 8. TABELA BANCO_HORAS (HORAS EXTRAS)
@@ -125,8 +124,8 @@ CREATE TABLE IF NOT EXISTS adiantamentos (
 -- Armazena: id, nome, email, senha, role
 CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
-    nome TEXT NOT NULL,
-    email TEXT NOT NULL UNIQUE,
+    nome TEXT,
+    email TEXT UNIQUE,
     senha TEXT,
     role TEXT DEFAULT 'user',
     ativo BOOLEAN DEFAULT true,

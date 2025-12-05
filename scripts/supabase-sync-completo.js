@@ -75,31 +75,29 @@
 
             for (const item of localData) {
                 try {
+                    // Pular se já existe
+                    if (remoteIds.has(item.id)) {
+                        continue;
+                    }
+
                     // Limpar dados para campos permitidos apenas
                     const cleanItem = {};
                     allowedFields.forEach(field => {
                         if (field in item) cleanItem[field] = item[field];
                     });
 
-                    if (remoteIds.has(item.id)) {
-                        // UPDATE
-                        await supabaseRequest('PATCH', tableName, cleanItem, `id=eq.${item.id}`);
-                    } else {
-                        // INSERT
-                        await supabaseRequest('POST', tableName, cleanItem);
+                    // Validar que tem dados válidos - pular se vazio
+                    const hasValidData = Object.values(cleanItem).some(v => v != null && v !== '');
+                    if (!hasValidData) {
+                        continue;
                     }
+
+                    // INSERT
+                    await supabaseRequest('POST', tableName, cleanItem);
                 } catch (e) {
-                    if (e.status === 409) {
-                        // Duplicado - tentar UPDATE
-                        try {
-                            const cleanItem = {};
-                            allowedFields.forEach(field => {
-                                if (field in item) cleanItem[field] = item[field];
-                            });
-                            await supabaseRequest('PATCH', tableName, cleanItem, `id=eq.${item.id}`);
-                        } catch (updateError) {
-                            Log.error(`Falha ao atualizar ${tableName} ${item.id}: ${updateError.message}`);
-                        }
+                    if (e.status === 409 || e.status === 400) {
+                        // Duplicado ou dados inválidos - pular
+                        continue;
                     } else {
                         Log.error(`Erro ao processar ${tableName} ${item.id}: ${e.message}`);
                     }
