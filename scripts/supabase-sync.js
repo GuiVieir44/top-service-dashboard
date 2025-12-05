@@ -14,6 +14,7 @@
     let syncInProgress = false;
     let lastSync = 0;
     const SYNC_INTERVAL = 30000; // Sincronizar a cada 30s
+    const ENABLE_AUTO_SYNC = false; // DESABILITADO TEMPORARIAMENTE
 
     // ===== LOGGING =====
     const Log = {
@@ -296,20 +297,24 @@
         }
     });
 
-    // Sincronizar periodicamente
+    // Sincronizar periodicamente (DESABILITADO)
+    /*
     setInterval(() => {
-        if (isConnected && !syncInProgress && Date.now() - lastSync > SYNC_INTERVAL) {
+        if (isConnected && !syncInProgress && Date.now() - lastSync > SYNC_INTERVAL && ENABLE_AUTO_SYNC) {
             syncAllData();
         }
     }, SYNC_INTERVAL);
+    */
 
-    // Sincronizar ao sair da página
+    // Sincronizar ao sair da página (DESABILITADO)
+    /*
     window.addEventListener('beforeunload', () => {
         if (isConnected) {
             Log.info('📤 Sincronizando antes de sair...');
             syncAllData();
         }
     });
+    */
 
     // ===== FUNÇÕES EXPOSTAS =====
     window.supabaseSync = {

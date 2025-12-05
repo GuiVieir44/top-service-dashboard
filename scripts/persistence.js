@@ -166,12 +166,15 @@
     function handleStorageQuotaExceeded() {
         Log.error('QUOTA DE ARMAZENAMENTO EXCEDIDA!');
         
+        // DESABILITADO - Não mostrar toast (causava loop)
+        /*
         if (typeof window.showToast === 'function') {
             window.showToast(
                 '❌ Espaço de armazenamento insuficiente! Limpe dados antigos na configuração.',
                 'error'
             );
         }
+        */
 
         if (confirm('⚠️ Espaço insuficiente!\n\nDeseja limpar dados antigos para continuar?')) {
             if (typeof window.showStorageCleanupUI === 'function') {
@@ -202,6 +205,10 @@
      * Função principal de salvamento otimizada
      */
     function safeSaveAll() {
+        // TEMPORARIAMENTE DESABILITADO PARA EVITAR LOOP
+        return;
+        
+        /* CÓDIGO ORIGINAL COMENTADO
         // Evitar salvamentos simultâneos
         if (isSaving) {
             savePending = true;
@@ -311,9 +318,12 @@
                     duration + 'ms'
                 );
                 
+                // DESABILITADO - Não mostrar toast (causava loop)
+                /*
                 if (typeof window.showToast === 'function' && failureLog.length > 2) {
                     window.showToast('⚠️ Erro ao sincronizar dados. Consulte console.', 'warning');
                 }
+                */
                 
                 if (typeof window.showSaveIndicator === 'function') {
                     window.showSaveIndicator(false, 'warning');
@@ -325,9 +335,12 @@
         } catch (e) {
             saveStats.failedSaves++;
             Log.error('Erro crítico ao executar safeSaveAll:', e);
+            // DESABILITADO - Não mostrar toast (causava loop)
+            /*
             if (typeof window.showToast === 'function') {
                 window.showToast('❌ Erro crítico na sincronização!', 'error');
             }
+            */
             if (typeof window.showSaveIndicator === 'function') {
                 window.showSaveIndicator(false, 'error');
             }
@@ -416,7 +429,8 @@
         scheduleDebouncedsave();
     });
 
-    // Listener para sincronizar com Supabase após salvar localmente
+    // Listener para sincronizar com Supabase (DESABILITADO TEMPORARIAMENTE)
+    /*
     window.addEventListener('dataChanged', () => {
         // Aguardar um pouco para garantir que o localStorage foi salvo
         setTimeout(() => {
@@ -425,6 +439,7 @@
             }
         }, 1000);
     });
+    */
 
     // ===== FUNÇÕES EXPOSTAS =====
     window.safeSaveAll = safeSaveAll;

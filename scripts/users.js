@@ -34,12 +34,6 @@ function performSaveUsers(users) {
     try {
         localStorage.setItem(USER_KEY, JSON.stringify(users));
         window.users = users; // Sincronizar global
-        
-        // Notificar persistência global
-        if (typeof window.scheduleDebouncedsave === 'function') {
-            window.scheduleDebouncedsave();
-        }
-        
         console.log('✅ Usuários salvos com debounce -', users.length, 'registros');
     } catch (e) {
         console.error('Erro ao salvar usuários:', e);
