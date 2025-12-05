@@ -56,7 +56,10 @@
             
             if (!response.ok) {
                 const error = await response.json().catch(() => ({ message: response.statusText }));
-                throw new Error(`${response.status}: ${error.message || 'Unknown error'}`);
+                const errorMsg = `${response.status}: ${error.message || 'Unknown error'}`;
+                const customError = new Error(errorMsg);
+                customError.status = response.status;  // Adicionar status code para fácil acesso
+                throw customError;
             }
 
             return await response.json();
@@ -108,7 +111,7 @@
                     }
                 } catch (e) {
                     // Se deu 409 (já existe), tenta atualizar
-                    if (e.message.includes('409')) {
+                    if (e.status === 409) {
                         try {
                             await supabaseRequest('PATCH', 'employees', emp, `id=eq.${emp.id}`);
                         } catch (updateError) {
@@ -159,7 +162,7 @@
                     }
                 } catch (e) {
                     // Se deu 409 (já existe), tenta atualizar
-                    if (e.message.includes('409')) {
+                    if (e.status === 409) {
                         try {
                             await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
                         } catch (updateError) {
@@ -211,7 +214,7 @@
                     }
                 } catch (e) {
                     // Se deu 409 (já existe), tenta atualizar
-                    if (e.message.includes('409')) {
+                    if (e.status === 409) {
                         try {
                             await supabaseRequest('PATCH', 'afastamentos', afastamento, `id=eq.${afastamento.id}`);
                         } catch (updateError) {
@@ -253,7 +256,7 @@
                     }
                 } catch (e) {
                     // Se deu 409 (já existe), tenta atualizar
-                    if (e.message.includes('409')) {
+                    if (e.status === 409) {
                         try {
                             await supabaseRequest('PATCH', 'departamentos', dept, `id=eq.${dept.id}`);
                         } catch (updateError) {
