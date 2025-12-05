@@ -322,10 +322,11 @@
     setTimeout(async () => {
         const connected = await checkConnection();
         if (connected) {
-            // Download primeiro, depois upload
+            console.log('🔄 Iniciando sincronização: UPLOAD primeiro, depois DOWNLOAD');
+            // Upload primeiro (enviar dados locais para Supabase), depois download
             setTimeout(async () => {
-                await downloadAllDataComplete();
-                setTimeout(() => syncAllDataComplete(), 1000);
+                await syncAllDataComplete();
+                setTimeout(() => downloadAllDataComplete(), 1000);
             }, 2000);
         }
     }, 1000);
