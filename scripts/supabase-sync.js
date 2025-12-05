@@ -98,12 +98,25 @@
 
             // Inserir novos ou atualizar existentes
             for (const emp of localEmployees) {
-                if (remoteIds.has(emp.id)) {
-                    // Atualizar
-                    await supabaseRequest('PATCH', 'employees', emp, `id=eq.${emp.id}`);
-                } else {
-                    // Inserir
-                    await supabaseRequest('POST', 'employees', emp);
+                try {
+                    if (remoteIds.has(emp.id)) {
+                        // Atualizar
+                        await supabaseRequest('PATCH', 'employees', emp, `id=eq.${emp.id}`);
+                    } else {
+                        // Inserir
+                        await supabaseRequest('POST', 'employees', emp);
+                    }
+                } catch (e) {
+                    // Se deu 409 (já existe), tenta atualizar
+                    if (e.message.includes('409')) {
+                        try {
+                            await supabaseRequest('PATCH', 'employees', emp, `id=eq.${emp.id}`);
+                        } catch (updateError) {
+                            Log.error(`Falha ao atualizar employee ${emp.id}: ${updateError.message}`);
+                        }
+                    } else {
+                        throw e;
+                    }
                 }
             }
 
@@ -138,10 +151,23 @@
 
             // Inserir novos ou atualizar existentes
             for (const punch of normalizedPunches) {
-                if (remoteIds.has(punch.id)) {
-                    await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
-                } else {
-                    await supabaseRequest('POST', 'punches', punch);
+                try {
+                    if (remoteIds.has(punch.id)) {
+                        await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
+                    } else {
+                        await supabaseRequest('POST', 'punches', punch);
+                    }
+                } catch (e) {
+                    // Se deu 409 (já existe), tenta atualizar
+                    if (e.message.includes('409')) {
+                        try {
+                            await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
+                        } catch (updateError) {
+                            Log.error(`Falha ao atualizar punch ${punch.id}: ${updateError.message}`);
+                        }
+                    } else {
+                        throw e;
+                    }
                 }
             }
 
@@ -177,10 +203,23 @@
 
             // Inserir novos ou atualizar existentes
             for (const afastamento of normalizedAfastamentos) {
-                if (remoteIds.has(afastamento.id)) {
-                    await supabaseRequest('PATCH', 'afastamentos', afastamento, `id=eq.${afastamento.id}`);
-                } else {
-                    await supabaseRequest('POST', 'afastamentos', afastamento);
+                try {
+                    if (remoteIds.has(afastamento.id)) {
+                        await supabaseRequest('PATCH', 'afastamentos', afastamento, `id=eq.${afastamento.id}`);
+                    } else {
+                        await supabaseRequest('POST', 'afastamentos', afastamento);
+                    }
+                } catch (e) {
+                    // Se deu 409 (já existe), tenta atualizar
+                    if (e.message.includes('409')) {
+                        try {
+                            await supabaseRequest('PATCH', 'afastamentos', afastamento, `id=eq.${afastamento.id}`);
+                        } catch (updateError) {
+                            Log.error(`Falha ao atualizar afastamento ${afastamento.id}: ${updateError.message}`);
+                        }
+                    } else {
+                        throw e;
+                    }
                 }
             }
 
@@ -206,10 +245,23 @@
 
             // Inserir novos ou atualizar existentes
             for (const dept of localDepts) {
-                if (remoteIds.has(dept.id)) {
-                    await supabaseRequest('PATCH', 'departamentos', dept, `id=eq.${dept.id}`);
-                } else {
-                    await supabaseRequest('POST', 'departamentos', dept);
+                try {
+                    if (remoteIds.has(dept.id)) {
+                        await supabaseRequest('PATCH', 'departamentos', dept, `id=eq.${dept.id}`);
+                    } else {
+                        await supabaseRequest('POST', 'departamentos', dept);
+                    }
+                } catch (e) {
+                    // Se deu 409 (já existe), tenta atualizar
+                    if (e.message.includes('409')) {
+                        try {
+                            await supabaseRequest('PATCH', 'departamentos', dept, `id=eq.${dept.id}`);
+                        } catch (updateError) {
+                            Log.error(`Falha ao atualizar departamento ${dept.id}: ${updateError.message}`);
+                        }
+                    } else {
+                        throw e;
+                    }
                 }
             }
 
@@ -280,11 +332,31 @@
                 supabaseRequest('GET', 'departamentos')
             ]);
 
-            // Salvar localmente
-            window.employees = employees || [];
-            window.punches = punches || [];
-            window.afastamentos = afastamentos || [];
-            window.departamentos = departamentos || [];
+            // MERGE com dados locais (não sobrescrever tudo)
+            // Manter dados locais que existem + adicionar dados novos do servidor
+            if (employees && employees.length > 0) {
+                const localEmpIds = new Set((window.employees || []).map(e => e.id));
+                const newEmployees = employees.filter(e => !localEmpIds.has(e.id));
+                window.employees = [...(window.employees || []), ...newEmployees];
+            }
+
+            if (punches && punches.length > 0) {
+                const localPunchIds = new Set((window.punches || []).map(p => p.id));
+                const newPunches = punches.filter(p => !localPunchIds.has(p.id));
+                window.punches = [...(window.punches || []), ...newPunches];
+            }
+
+            if (afastamentos && afastamentos.length > 0) {
+                const localAfasIds = new Set((window.afastamentos || []).map(a => a.id));
+                const newAfas = afastamentos.filter(a => !localAfasIds.has(a.id));
+                window.afastamentos = [...(window.afastamentos || []), ...newAfas];
+            }
+
+            if (departamentos && departamentos.length > 0) {
+                const localDeptIds = new Set((window.departamentos || []).map(d => d.id));
+                const newDepts = departamentos.filter(d => !localDeptIds.has(d.id));
+                window.departamentos = [...(window.departamentos || []), ...newDepts];
+            }
 
             // Disparar evento para atualizar UI
             window.dispatchEvent(new Event('dataChanged'));
@@ -354,8 +426,12 @@
             const connected = await checkConnection();
             if (connected) {
                 Log.success('🚀 Sistema de sincronização Supabase pronto');
-                // Sincronizar imediatamente na primeira carga
-                setTimeout(() => syncAllData(), 2000);
+                // 1. Primeiro: baixar dados remotos (para ter dados sincronizados de outros dispositivos)
+                setTimeout(async () => {
+                    await downloadFromSupabase();
+                    // 2. Depois: fazer upload de dados locais que não foram sincronizados
+                    setTimeout(() => syncAllData(), 1000);
+                }, 2000);
             } else {
                 Log.warn('⚠️ Usando apenas localStorage (Supabase indisponível)');
             }
