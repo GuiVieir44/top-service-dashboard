@@ -99,26 +99,39 @@
             const remoteEmployees = await supabaseRequest('GET', 'employees');
             const remoteIds = new Set(remoteEmployees.map(e => e.id));
 
+            // Apenas campos que existem no Supabase
+            const allowedFields = ['id', 'matricula', 'nome', 'cargo', 'departamento', 'adicional', 'cpf', 'email', 'admissao', 'telefone', 'endereco', 'status'];
+
             // Inserir novos ou atualizar existentes
             for (const emp of localEmployees) {
                 try {
+                    // Filtrar apenas campos permitidos
+                    const cleanEmp = {};
+                    allowedFields.forEach(field => {
+                        if (field in emp) cleanEmp[field] = emp[field];
+                    });
+
                     if (remoteIds.has(emp.id)) {
                         // Atualizar
-                        await supabaseRequest('PATCH', 'employees', emp, `id=eq.${emp.id}`);
+                        await supabaseRequest('PATCH', 'employees', cleanEmp, `id=eq.${emp.id}`);
                     } else {
                         // Inserir
-                        await supabaseRequest('POST', 'employees', emp);
+                        await supabaseRequest('POST', 'employees', cleanEmp);
                     }
                 } catch (e) {
                     // Se deu 409 (já existe), tenta atualizar
                     if (e.status === 409) {
                         try {
-                            await supabaseRequest('PATCH', 'employees', emp, `id=eq.${emp.id}`);
+                            const cleanEmp = {};
+                            allowedFields.forEach(field => {
+                                if (field in emp) cleanEmp[field] = emp[field];
+                            });
+                            await supabaseRequest('PATCH', 'employees', cleanEmp, `id=eq.${emp.id}`);
                         } catch (updateError) {
                             Log.error(`Falha ao atualizar employee ${emp.id}: ${updateError.message}`);
                         }
                     } else {
-                        throw e;
+                        Log.error(`Erro ao processar employee ${emp.id}: ${e.message}`);
                     }
                 }
             }
@@ -139,37 +152,46 @@
             const localPunches = window.punches || [];
             if (localPunches.length === 0) return;
 
-            // Normalizar nomes de colunas para minúsculas
-            const normalizedPunches = localPunches.map(p => ({
-                id: p.id,
-                employeeid: p.employeeId,  // Converter employeeId para employeeid
-                type: p.type,
-                timestamp: p.timestamp,
-                status: p.status
-            }));
-
             // Buscar punches remotos
             const remotePunches = await supabaseRequest('GET', 'punches');
             const remoteIds = new Set(remotePunches.map(p => p.id));
 
             // Inserir novos ou atualizar existentes
-            for (const punch of normalizedPunches) {
+            for (const p of localPunches) {
                 try {
-                    if (remoteIds.has(punch.id)) {
-                        await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
+                    // Normalizar e limpar dados
+                    const cleanPunch = {
+                        id: p.id,
+                        employeeid: p.employeeId || p.employeeid,
+                        type: p.type,
+                        timestamp: p.timestamp,
+                        status: p.status || 'active'
+                    };
+
+                    if (remoteIds.has(p.id)) {
+                        // Atualizar
+                        await supabaseRequest('PATCH', 'punches', cleanPunch, `id=eq.${p.id}`);
                     } else {
-                        await supabaseRequest('POST', 'punches', punch);
+                        // Inserir
+                        await supabaseRequest('POST', 'punches', cleanPunch);
                     }
                 } catch (e) {
                     // Se deu 409 (já existe), tenta atualizar
                     if (e.status === 409) {
                         try {
-                            await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
+                            const cleanPunch = {
+                                id: p.id,
+                                employeeid: p.employeeId || p.employeeid,
+                                type: p.type,
+                                timestamp: p.timestamp,
+                                status: p.status || 'active'
+                            };
+                            await supabaseRequest('PATCH', 'punches', cleanPunch, `id=eq.${p.id}`);
                         } catch (updateError) {
-                            Log.error(`Falha ao atualizar punch ${punch.id}: ${updateError.message}`);
+                            Log.error(`Falha ao atualizar punch ${p.id}: ${updateError.message}`);
                         }
                     } else {
-                        throw e;
+                        Log.error(`Erro ao processar punch ${p.id}: ${e.message}`);
                     }
                 }
             }
