@@ -123,12 +123,21 @@
             const localPunches = window.punches || [];
             if (localPunches.length === 0) return;
 
+            // Normalizar nomes de colunas para minúsculas
+            const normalizedPunches = localPunches.map(p => ({
+                id: p.id,
+                employeeid: p.employeeId,  // Converter employeeId para employeeid
+                type: p.type,
+                timestamp: p.timestamp,
+                status: p.status
+            }));
+
             // Buscar punches remotos
             const remotePunches = await supabaseRequest('GET', 'punches');
             const remoteIds = new Set(remotePunches.map(p => p.id));
 
             // Inserir novos ou atualizar existentes
-            for (const punch of localPunches) {
+            for (const punch of normalizedPunches) {
                 if (remoteIds.has(punch.id)) {
                     await supabaseRequest('PATCH', 'punches', punch, `id=eq.${punch.id}`);
                 } else {
@@ -152,12 +161,22 @@
             const localAfastamentos = window.afastamentos || [];
             if (localAfastamentos.length === 0) return;
 
+            // Normalizar nomes de colunas para minúsculas
+            const normalizedAfastamentos = localAfastamentos.map(a => ({
+                id: a.id,
+                employeeid: a.employeeId,  // Converter employeeId para employeeid
+                start_date: a.start_date,
+                end_date: a.end_date,
+                days: a.days,
+                type: a.type
+            }));
+
             // Buscar afastamentos remotos
             const remoteAfastamentos = await supabaseRequest('GET', 'afastamentos');
             const remoteIds = new Set(remoteAfastamentos.map(a => a.id));
 
             // Inserir novos ou atualizar existentes
-            for (const afastamento of localAfastamentos) {
+            for (const afastamento of normalizedAfastamentos) {
                 if (remoteIds.has(afastamento.id)) {
                     await supabaseRequest('PATCH', 'afastamentos', afastamento, `id=eq.${afastamento.id}`);
                 } else {
