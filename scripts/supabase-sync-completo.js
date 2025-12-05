@@ -46,19 +46,24 @@
                 options.body = JSON.stringify(data);
             }
 
+            console.log(`🌐 ${method} ${table}`, data ? `→ ${JSON.stringify(data).substring(0, 100)}...` : '');
+
             const response = await fetch(url, options);
             
             if (!response.ok) {
                 const error = await response.json().catch(() => ({ message: response.statusText }));
                 const errorMsg = `${response.status}: ${error.message || 'Unknown error'}`;
+                console.error(`❌ ${response.status} ${table}: ${error.message || response.statusText}`);
                 const customError = new Error(errorMsg);
                 customError.status = response.status;
                 throw customError;
             }
 
-            return await response.json();
+            const result = await response.json();
+            console.log(`✅ ${method} ${table} OK`);
+            return result;
         } catch (e) {
-            Log.error(`Erro na requisição ${method} ${table}: ${e.message}`);
+            console.error(`🔴 Erro na requisição ${method} ${table}: ${e.message}`);
             throw e;
         }
     }
@@ -67,16 +72,32 @@
      * Sincroniza uma tabela genérica
      */
     async function syncTable(tableName, localData, allowedFields) {
-        if (!localData || localData.length === 0) return true;
+        if (!localData || localData.length === 0) {
+            console.log(`📭 Tabela ${tableName} vazia localmente, pulando`);
+            return true;
+        }
+
+        console.log(`📤 Iniciando sync de ${tableName} com ${localData.length} registros`);
 
         try {
-            const remoteData = await supabaseRequest('GET', tableName);
+            let remoteData = [];
+            try {
+                remoteData = await supabaseRequest('GET', tableName);
+                console.log(`🔍 Encontrados ${remoteData.length} registros remotos em ${tableName}`);
+            } catch (e) {
+                console.log(`⚠️ Erro ao buscar dados remotos de ${tableName}, assumindo tabela vazia: ${e.message}`);
+                remoteData = [];
+            }
+
             const remoteIds = new Set(remoteData.map(r => r.id));
+            let insertedCount = 0;
+            let skippedCount = 0;
 
             for (const item of localData) {
                 try {
                     // Pular se já existe
                     if (remoteIds.has(item.id)) {
+                        skippedCount++;
                         continue;
                     }
 
@@ -89,14 +110,19 @@
                     // Validar que tem dados válidos - pular se vazio
                     const hasValidData = Object.values(cleanItem).some(v => v != null && v !== '');
                     if (!hasValidData) {
+                        skippedCount++;
                         continue;
                     }
 
                     // INSERT
+                    console.log(`➕ Enviando ${tableName} id=${item.id}`);
                     await supabaseRequest('POST', tableName, cleanItem);
+                    insertedCount++;
                 } catch (e) {
                     if (e.status === 409 || e.status === 400) {
                         // Duplicado ou dados inválidos - pular
+                        skippedCount++;
+                        console.log(`⏭️ Pulando ${tableName} id=${item.id}: ${e.message}`);
                         continue;
                     } else {
                         Log.error(`Erro ao processar ${tableName} ${item.id}: ${e.message}`);
@@ -104,6 +130,7 @@
                 }
             }
 
+            console.log(`✅ Sync ${tableName}: ${insertedCount} inseridos, ${skippedCount} pulados`);
             return true;
         } catch (e) {
             Log.error(`Erro ao sincronizar ${tableName}: ${e.message}`);
