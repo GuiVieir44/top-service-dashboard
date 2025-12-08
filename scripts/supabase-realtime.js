@@ -437,7 +437,8 @@
         const connected = await checkConnection();
         
         if (connected) {
-            // Carregar dados iniciais
+            // IMPORTANTE: Carregar dados do Supabase e SUBSTITUIR localStorage
+            // Isso garante que dados deletados não voltem
             await loadInitialData();
             
             // Conectar ao Realtime via WebSocket
@@ -446,7 +447,7 @@
             console.log('✅ Supabase Realtime ativo!');
             console.log('📡 Atualizações em tempo real habilitadas');
         } else {
-            console.log('⚠️ Sem conexão. Usando dados locais.');
+            console.log('⚠️ Sem conexão com Supabase. Dados locais podem estar desatualizados.');
             
             // Tentar reconectar a cada 10 segundos
             setInterval(async () => {
@@ -461,12 +462,8 @@
         }
     }
 
-    // Aguardar DOM e inicializar
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => setTimeout(init, 1000));
-    } else {
-        setTimeout(init, 1000);
-    }
+    // Inicializar IMEDIATAMENTE (sem delay)
+    init();
 
     console.log('✅ Supabase Realtime carregado!');
     console.log('📌 API: supabaseRealtime.insert(), update(), remove(), sync(), clearAll()');

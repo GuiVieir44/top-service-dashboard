@@ -67,18 +67,19 @@ function performSaveEmployees() {
 let employees = [];
 
 /**
- * Inicializa o sistema de dados, carregando funcionários do localStorage ou usando defaults
+ * Inicializa o sistema de dados, carregando funcionários do localStorage
+ * NÃO usa defaults - dados vêm do Supabase
  */
 function initializeEmployeesData() {
     try {
         const stored = localStorage.getItem(EMP_KEY);
-        employees = stored ? JSON.parse(stored) : [...employeesData];
-        localStorage.setItem(EMP_KEY, JSON.stringify(employees));
-        window.employees = employees; // Sincronizar variável global
-        console.log('✅ Funcionários carregados:', employees.length);
+        // NÃO usar employeesData como fallback - começar vazio
+        employees = stored ? JSON.parse(stored) : [];
+        window.employees = employees;
+        console.log('✅ Funcionários carregados do localStorage:', employees.length);
     } catch (e) {
-        console.error('Erro ao carregar employees do localStorage, usando defaults:', e);
-        employees = [...employeesData];
+        console.error('Erro ao carregar employees do localStorage:', e);
+        employees = [];
         window.employees = employees;
     }
 }
@@ -92,8 +93,8 @@ function saveEmployees() {
     scheduleSaveEmployees();
 }
 
-// Inicializar dados ao carregar o script
-initializeEmployeesData();
+// NÃO inicializar automaticamente - deixar Supabase fazer
+// initializeEmployeesData();
 
 /**
  * Obtém a lista completa de funcionários
