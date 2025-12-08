@@ -332,41 +332,194 @@
     async function downloadAllData() {
         if (!isConnected) return false;
 
+        console.log('⬇️ Baixando dados do Supabase...');
+
         try {
-            const [employees, punches, afastamentos, departamentos, cargos, ausencias, users] = await Promise.all([
+            const [employees, punches, afastamentos, departamentos, cargos, ausencias, users, configuracoes, bancoHoras, adiantamentos, ferias] = await Promise.all([
                 supabaseRequest('GET', 'employees'),
                 supabaseRequest('GET', 'punches'),
                 supabaseRequest('GET', 'afastamentos'),
                 supabaseRequest('GET', 'departamentos'),
                 supabaseRequest('GET', 'cargos'),
                 supabaseRequest('GET', 'ausencias'),
-                supabaseRequest('GET', 'users')
+                supabaseRequest('GET', 'users'),
+                supabaseRequest('GET', 'configuracoes'),
+                supabaseRequest('GET', 'banco_horas'),
+                supabaseRequest('GET', 'adiantamentos'),
+                supabaseRequest('GET', 'ferias')
             ]);
 
-            // Normalizar e mesclar
+            // ===== EMPLOYEES =====
             if (employees && employees.length > 0) {
-                const localIds = new Set((window.employees || []).map(e => e.id));
+                const local = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+                const localIds = new Set(local.map(e => e.id));
                 const newItems = employees.filter(e => !localIds.has(e.id));
                 if (newItems.length > 0) {
-                    window.employees = [...(window.employees || []), ...newItems];
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_employees_v1', JSON.stringify(merged));
+                    window.employees = merged;
                     console.log(`⬇️ ${newItems.length} employees baixados`);
                 }
             }
 
+            // ===== PUNCHES =====
             if (punches && punches.length > 0) {
-                const localIds = new Set((window.punches || []).map(p => p.id));
-                const newItems = punches.filter(p => !localIds.has(p.id));
+                const local = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+                const localIds = new Set(local.map(p => p.id));
+                const newItems = punches.filter(p => !localIds.has(p.id)).map(p => ({
+                    ...p, 
+                    employeeId: p.employeeid || p.employeeId
+                }));
                 if (newItems.length > 0) {
-                    const normalized = newItems.map(p => ({...p, employeeId: p.employeeid}));
-                    window.punches = [...(window.punches || []), ...normalized];
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_punches_v1', JSON.stringify(merged));
+                    window.punches = merged;
                     console.log(`⬇️ ${newItems.length} punches baixados`);
                 }
             }
 
+            // ===== DEPARTAMENTOS =====
+            if (departamentos && departamentos.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
+                const localIds = new Set(local.map(d => d.id));
+                const newItems = departamentos.filter(d => !localIds.has(d.id));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_departamentos_v1', JSON.stringify(merged));
+                    window.departamentos = merged;
+                    console.log(`⬇️ ${newItems.length} departamentos baixados`);
+                }
+            }
+
+            // ===== CARGOS =====
+            if (cargos && cargos.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_cargos_v1') || '[]');
+                const localIds = new Set(local.map(c => c.id));
+                const newItems = cargos.filter(c => !localIds.has(c.id));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_cargos_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} cargos baixados`);
+                }
+            }
+
+            // ===== AFASTAMENTOS =====
+            if (afastamentos && afastamentos.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_afastamentos_v1') || '[]');
+                const localIds = new Set(local.map(a => a.id));
+                const newItems = afastamentos.filter(a => !localIds.has(a.id)).map(a => ({
+                    ...a,
+                    employeeId: a.employeeid || a.employeeId,
+                    startDate: a.start_date || a.startDate,
+                    endDate: a.end_date || a.endDate
+                }));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_afastamentos_v1', JSON.stringify(merged));
+                    window.afastamentos = merged;
+                    console.log(`⬇️ ${newItems.length} afastamentos baixados`);
+                }
+            }
+
+            // ===== AUSENCIAS =====
+            if (ausencias && ausencias.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+                const localIds = new Set(local.map(a => a.id));
+                const newItems = ausencias.filter(a => !localIds.has(a.id)).map(a => ({
+                    ...a,
+                    employeeId: a.employeeid || a.employeeId
+                }));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_absences_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} ausencias baixados`);
+                }
+            }
+
+            // ===== USERS =====
+            if (users && users.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_users_v1') || '[]');
+                const localIds = new Set(local.map(u => u.id));
+                const newItems = users.filter(u => !localIds.has(u.id));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_users_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} users baixados`);
+                }
+            }
+
+            // ===== CONFIGURACOES =====
+            if (configuracoes && configuracoes.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_configuracoes_v1') || '[]');
+                const localIds = new Set(local.map(c => c.id));
+                const newItems = configuracoes.filter(c => !localIds.has(c.id));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_configuracoes_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} configuracoes baixados`);
+                }
+            }
+
+            // ===== BANCO HORAS =====
+            if (bancoHoras && bancoHoras.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_banco_horas_v1') || '[]');
+                const localIds = new Set(local.map(b => b.id));
+                const newItems = bancoHoras.filter(b => !localIds.has(b.id)).map(b => ({
+                    ...b,
+                    employeeId: b.employeeid || b.employeeId
+                }));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_banco_horas_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} banco_horas baixados`);
+                }
+            }
+
+            // ===== ADIANTAMENTOS =====
+            if (adiantamentos && adiantamentos.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_adiantamentos_v1') || '[]');
+                const localIds = new Set(local.map(a => a.id));
+                const newItems = adiantamentos.filter(a => !localIds.has(a.id)).map(a => ({
+                    ...a,
+                    employeeId: a.employeeid || a.employeeId
+                }));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_adiantamentos_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} adiantamentos baixados`);
+                }
+            }
+
+            // ===== FERIAS =====
+            if (ferias && ferias.length > 0) {
+                const local = JSON.parse(localStorage.getItem('topservice_ferias_v1') || '[]');
+                const localIds = new Set(local.map(f => f.id));
+                const newItems = ferias.filter(f => !localIds.has(f.id)).map(f => ({
+                    ...f,
+                    employeeId: f.employeeid || f.employeeId,
+                    dataInicio: f.data_inicio || f.dataInicio,
+                    dataFim: f.data_fim || f.dataFim
+                }));
+                if (newItems.length > 0) {
+                    const merged = [...local, ...newItems];
+                    localStorage.setItem('topservice_ferias_v1', JSON.stringify(merged));
+                    console.log(`⬇️ ${newItems.length} ferias baixados`);
+                }
+            }
+
+            // Disparar evento para atualizar UI
             window.dispatchEvent(new Event('dataChanged'));
+            window.dispatchEvent(new Event('storageUpdated'));
+            
+            // Tentar renderizar se funções existirem
+            if (typeof renderEmployeeList === 'function') renderEmployeeList();
+            if (typeof renderDepartments === 'function') renderDepartments();
+            if (typeof renderPunches === 'function') renderPunches();
+            
+            console.log('✅ Download completo!');
             return true;
         } catch (e) {
-            console.error(`Erro ao baixar dados: ${e.message}`);
+            console.error(`❌ Erro ao baixar dados: ${e.message}`);
             return false;
         }
     }
