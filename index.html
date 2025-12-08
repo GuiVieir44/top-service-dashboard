@@ -253,6 +253,85 @@
     <script src="scripts/debug.js"></script>
     <script src="scripts/toast.js"></script>
     <script src="scripts/supabase-realtime.js"></script>
+    
+    <!-- SCRIPT DE EMERGÊNCIA - Carregar dados do Supabase -->
+    <script>
+    (async function carregarDadosSupabase() {
+        console.log('%c🚨 CARREGAMENTO DE EMERGÊNCIA INICIADO', 'color: red; font-size: 16px; font-weight: bold;');
+        
+        const SUPABASE_URL = 'https://szwqezafiilwxgpyukxq.supabase.co';
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6d3FlemFmaWlsd3hncHl1a3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NTExNjAsImV4cCI6MjA4MDQyNzE2MH0.eENe9npKaeN9dCWTn019a04Ekl9EjXKaYJd-aGYuNt0';
+        
+        const tabelas = [
+            { nome: 'employees', local: 'topservice_employees_v1' },
+            { nome: 'departamentos', local: 'topservice_departamentos_v1' },
+            { nome: 'punches', local: 'topservice_punches_v1' },
+            { nome: 'cargos', local: 'topservice_cargos_v1' },
+            { nome: 'afastamentos', local: 'topservice_afastamentos_v1' }
+        ];
+        
+        for (const tabela of tabelas) {
+            try {
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/${tabela.nome}`, {
+                    headers: { 
+                        'apikey': SUPABASE_KEY, 
+                        'Authorization': 'Bearer ' + SUPABASE_KEY 
+                    }
+                });
+                
+                if (response.ok) {
+                    const dados = await response.json();
+                    
+                    // Normalizar dados de employees
+                    let dadosNormalizados = dados;
+                    if (tabela.nome === 'employees') {
+                        dadosNormalizados = dados.map(item => ({
+                            id: item.id,
+                            matricula: item.matricula,
+                            nome: item.nome,
+                            cargo: item.cargo,
+                            departamento: item.departamento,
+                            adicional: item.adicional,
+                            valeAlimentacao: item.vale_alimentacao,
+                            valeTransporte: item.vale_transporte,
+                            cpf: item.cpf,
+                            email: item.email,
+                            admissao: item.admissao,
+                            telefone: item.telefone,
+                            endereco: item.endereco,
+                            status: item.status
+                        }));
+                    }
+                    
+                    // Normalizar departamentos
+                    if (tabela.nome === 'departamentos') {
+                        dadosNormalizados = dados.map(item => ({
+                            id: item.id,
+                            nome: item.name || item.nome,
+                            name: item.name || item.nome,
+                            description: item.description
+                        }));
+                    }
+                    
+                    localStorage.setItem(tabela.local, JSON.stringify(dadosNormalizados));
+                    console.log(`✅ ${tabela.nome}: ${dadosNormalizados.length} registros carregados`);
+                }
+            } catch (e) {
+                console.error(`❌ Erro ao carregar ${tabela.nome}:`, e);
+            }
+        }
+        
+        console.log('%c✅ DADOS CARREGADOS DO SUPABASE!', 'color: green; font-size: 14px; font-weight: bold;');
+        
+        // Atualizar variáveis globais
+        window.employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+        window.departamentos = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
+        
+        console.log('👥 Funcionários:', window.employees.length);
+        console.log('🏢 Departamentos:', window.departamentos.length);
+    })();
+    </script>
+    
     <script>
         console.log('🧪 TESTE: Verificando se navegação pode ser testada');
         window.addEventListener('DOMContentLoaded', () => {
