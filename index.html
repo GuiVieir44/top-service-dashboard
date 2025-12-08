@@ -256,7 +256,8 @@
     
     <!-- SCRIPT DE EMERGÊNCIA - Carregar dados do Supabase -->
     <script>
-    (async function carregarDadosSupabase() {
+    // Função global para carregar dados do Supabase
+    window.carregarDadosSupabase = async function() {
         console.log('%c🚨 CARREGAMENTO DE EMERGÊNCIA INICIADO', 'color: red; font-size: 16px; font-weight: bold;');
         
         const SUPABASE_URL = 'https://szwqezafiilwxgpyukxq.supabase.co';
@@ -269,6 +270,8 @@
             { nome: 'cargos', local: 'topservice_cargos_v1' },
             { nome: 'afastamentos', local: 'topservice_afastamentos_v1' }
         ];
+        
+        let totalCarregado = 0;
         
         for (const tabela of tabelas) {
             try {
@@ -301,6 +304,7 @@
                             endereco: item.endereco,
                             status: item.status
                         }));
+                        totalCarregado = dadosNormalizados.length;
                     }
                     
                     // Normalizar departamentos
@@ -314,22 +318,78 @@
                     }
                     
                     localStorage.setItem(tabela.local, JSON.stringify(dadosNormalizados));
-                    console.log(`✅ ${tabela.nome}: ${dadosNormalizados.length} registros carregados`);
+                    console.log(`✅ ${tabela.nome}: ${dadosNormalizados.length} registros`);
                 }
             } catch (e) {
                 console.error(`❌ Erro ao carregar ${tabela.nome}:`, e);
             }
         }
         
-        console.log('%c✅ DADOS CARREGADOS DO SUPABASE!', 'color: green; font-size: 14px; font-weight: bold;');
-        
         // Atualizar variáveis globais
         window.employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
         window.departamentos = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
         
+        console.log('%c✅ DADOS CARREGADOS!', 'color: green; font-size: 14px; font-weight: bold;');
         console.log('👥 Funcionários:', window.employees.length);
-        console.log('🏢 Departamentos:', window.departamentos.length);
-    })();
+        
+        // Atualizar interface
+        if (typeof renderEmployeeList === 'function') {
+            renderEmployeeList();
+            console.log('✅ Lista de funcionários atualizada!');
+        }
+        
+        // Atualizar métricas do dashboard
+        if (window.navigationSystem && typeof window.navigationSystem.updateDashboardMetrics === 'function') {
+            window.navigationSystem.updateDashboardMetrics();
+        }
+        
+        // Atualizar total de funcionários no dashboard
+        const totalEl = document.getElementById('total-funcionarios');
+        if (totalEl) {
+            totalEl.textContent = window.employees.length;
+        }
+        
+        return totalCarregado;
+    };
+    
+    // Executar automaticamente ao carregar a página
+    document.addEventListener('DOMContentLoaded', function() {
+        // Criar botão de emergência
+        const btn = document.createElement('button');
+        btn.id = 'btn-carregar-supabase';
+        btn.innerHTML = '🔄 Carregar Dados';
+        btn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;padding:15px 25px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:white;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(39,174,96,0.4);';
+        
+        btn.onclick = async function() {
+            btn.disabled = true;
+            btn.innerHTML = '⏳ Carregando...';
+            btn.style.background = '#95a5a6';
+            
+            try {
+                const total = await window.carregarDadosSupabase();
+                btn.innerHTML = '✅ ' + total + ' funcionários carregados!';
+                btn.style.background = '#27ae60';
+                
+                setTimeout(() => {
+                    btn.innerHTML = '🔄 Carregar Dados';
+                    btn.style.background = 'linear-gradient(135deg,#27ae60,#2ecc71)';
+                    btn.disabled = false;
+                }, 3000);
+            } catch (e) {
+                btn.innerHTML = '❌ Erro!';
+                btn.style.background = '#e74c3c';
+                console.error(e);
+            }
+        };
+        
+        document.body.appendChild(btn);
+        console.log('✅ Botão de emergência criado!');
+        
+        // Carregar dados automaticamente
+        setTimeout(() => {
+            window.carregarDadosSupabase();
+        }, 1000);
+    });
     </script>
     
     <script>
