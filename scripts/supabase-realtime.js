@@ -429,41 +429,116 @@
         getStatus: () => ({ connected: isConnected, syncing: false })
     };
 
+    // ===== MOSTRAR STATUS DE SINCRONIZAÇÃO =====
+    function showSyncStatus(message, type = 'info') {
+        // Remover toast anterior se existir
+        const existingToast = document.getElementById('sync-toast');
+        if (existingToast) existingToast.remove();
+        
+        const toast = document.createElement('div');
+        toast.id = 'sync-toast';
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            animation: slideIn 0.3s ease;
+            ${type === 'success' ? 'background: #10b981; color: white;' : ''}
+            ${type === 'info' ? 'background: #3b82f6; color: white;' : ''}
+            ${type === 'error' ? 'background: #ef4444; color: white;' : ''}
+        `;
+        
+        const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '🔄';
+        toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
+        
+        // Adicionar animação CSS se não existir
+        if (!document.getElementById('sync-toast-style')) {
+            const style = document.createElement('style');
+            style.id = 'sync-toast-style';
+            style.textContent = `
+                @keyframes slideIn {
+                    from { transform: translateX(100%); opacity: 0; }
+                    to { transform: translateX(0); opacity: 1; }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+        
+        document.body.appendChild(toast);
+        
+        // Auto-remover após 3 segundos (5 segundos para sucesso)
+        setTimeout(() => toast.remove(), type === 'success' ? 5000 : 3000);
+    }
+
+    // ===== LIMPAR CACHE LOCAL =====
+    function clearLocalCache() {
+        console.log('🧹 Limpando cache local antes de sincronizar...');
+        
+        for (const [table, config] of Object.entries(TABLES)) {
+            localStorage.removeItem(config.localStorage);
+            window[table] = [];
+        }
+        
+        console.log('✅ Cache local limpo!');
+    }
+
     // ===== INICIALIZAÇÃO =====
     async function init() {
         console.log('🚀 Iniciando Supabase Realtime...');
         
-        // Verificar conexão
+        // Mostrar status na tela
+        showSyncStatus('Sincronizando com servidor...', 'info');
+        
+        // PASSO 1: Limpar cache local para garantir dados frescos
+        clearLocalCache();
+        
+        // PASSO 2: Verificar conexão
         const connected = await checkConnection();
         
         if (connected) {
-            // IMPORTANTE: Carregar dados do Supabase e SUBSTITUIR localStorage
-            // Isso garante que dados deletados não voltem
+            // PASSO 3: Baixar dados frescos do Supabase
             await loadInitialData();
             
-            // Conectar ao Realtime via WebSocket
+            // PASSO 4: Conectar ao Realtime para atualizações automáticas
             connectRealtime();
             
+            showSyncStatus('Sincronizado! Atualizações automáticas ativas.', 'success');
             console.log('✅ Supabase Realtime ativo!');
             console.log('📡 Atualizações em tempo real habilitadas');
         } else {
-            console.log('⚠️ Sem conexão com Supabase. Dados locais podem estar desatualizados.');
+            showSyncStatus('Sem conexão. Usando dados locais.', 'error');
+            console.log('⚠️ Sem conexão com Supabase.');
             
             // Tentar reconectar a cada 10 segundos
             setInterval(async () => {
                 if (!isConnected) {
+                    showSyncStatus('Tentando reconectar...', 'info');
                     const reconnected = await checkConnection();
                     if (reconnected) {
+                        clearLocalCache();
                         await loadInitialData();
                         connectRealtime();
+                        showSyncStatus('Reconectado! Dados atualizados.', 'success');
                     }
                 }
             }, 10000);
         }
     }
 
-    // Inicializar IMEDIATAMENTE (sem delay)
-    init();
+    // Inicializar IMEDIATAMENTE quando a página carregar
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
 
     console.log('✅ Supabase Realtime carregado!');
     console.log('📌 API: supabaseRealtime.insert(), update(), remove(), sync(), clearAll()');
