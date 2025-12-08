@@ -145,12 +145,40 @@
         }
     }
 
+    // ===== LIMPAR TUDO (Supabase + Local) =====
+    async function limparTudo() {
+        console.log('🗑️ LIMPANDO TODOS OS DADOS...');
+        
+        const tabelas = ['employees', 'departamentos', 'punches', 'afastamentos', 'cargos', 'ausencias', 'banco_horas', 'adiantamentos', 'ferias'];
+        
+        // Deletar do Supabase
+        for (const tabela of tabelas) {
+            try {
+                const resp = await request('DELETE', tabela, null, 'id=neq.00000000-0000-0000-0000-000000000000');
+                console.log(`✅ ${tabela} limpo no Supabase`);
+            } catch(e) {
+                console.log(`⚠️ ${tabela}: ${e.message}`);
+            }
+        }
+        
+        // Limpar localStorage
+        tabelas.forEach(t => {
+            const key = `topservice_${t}_v1`;
+            localStorage.setItem(key, '[]');
+            console.log(`🧹 ${key} limpo`);
+        });
+        
+        console.log('✅ TUDO LIMPO! Recarregando...');
+        setTimeout(() => location.reload(), 1000);
+    }
+
     // ===== EXPOR API =====
     window.supabaseSync = {
         upload: uploadAll,
         download: downloadAll,
         sync,
         checkConnection,
+        limparTudo,
         getStatus: () => ({ connected: isConnected, syncing: isSyncing })
     };
 
