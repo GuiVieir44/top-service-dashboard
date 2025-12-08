@@ -23,19 +23,26 @@
     let lastLocalSnapshot = {}; // Snapshot anterior para detectar mudanças
 
     // ===== REQUEST =====
-    async function supabaseRequest(method, table, data = null, filter = null) {
+    async function supabaseRequest(method, table, data = null, filter = null, upsert = false) {
         try {
             let url = `${SUPABASE_URL}/rest/v1/${table}`;
             if (filter) url += `?${filter}`;
 
+            const headers = {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+                'apikey': SUPABASE_ANON_KEY,
+                'Prefer': 'return=representation'
+            };
+
+            // Se for UPSERT, adicionar header especial
+            if (upsert && method === 'POST') {
+                headers['Prefer'] = 'return=representation,resolution=merge-duplicates';
+            }
+
             const options = {
                 method: method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Prefer': 'return=representation'
-                }
+                headers: headers
             };
 
             if (data && (method === 'POST' || method === 'PATCH' || method === 'PUT')) {
@@ -123,7 +130,7 @@
         }
     }
 
-    // ===== SINCRONIZAÇÃO INTELIGENTE =====
+    // ===== SINCRONIZAÇÃO INTELIGENTE COM UPSERT =====
     async function smartSync(tableName, localData, allowedFields) {
         if (!localData || localData.length === 0) return true;
 
@@ -132,52 +139,28 @@
             const remoteMap = new Map(remoteData.map(r => [r.id, r]));
             const localMap = new Map(localData.map(l => [l.id, l]));
 
-            let created = 0, updated = 0, deleted = 0;
+            let synced = 0, deleted = 0;
 
-            // ===== CREATE: Novos locais que não existem remotamente =====
+            // ===== UPSERT: Todos os itens locais (cria ou atualiza) =====
             for (const local of localData) {
-                if (!remoteMap.has(local.id)) {
-                    try {
-                        const cleanItem = {};
-                        allowedFields.forEach(field => {
-                            if (field in local) cleanItem[field] = local[field];
-                        });
-                        
-                        const hasData = Object.values(cleanItem).some(v => v != null && v !== '');
-                        if (hasData) {
-                            await supabaseRequest('POST', tableName, cleanItem);
-                            recordAction({ type: 'CREATE', table: tableName, id: local.id, newValue: cleanItem });
-                            created++;
+                try {
+                    const cleanItem = {};
+                    allowedFields.forEach(field => {
+                        if (field in local && local[field] != null && local[field] !== '') {
+                            cleanItem[field] = local[field];
                         }
-                    } catch (e) {
-                        if (e.status !== 409) console.error(`Erro ao criar ${tableName}: ${e.message}`);
-                    }
-                }
-            }
-
-            // ===== UPDATE: Itens que existem mas mudaram =====
-            for (const [id, remote] of remoteMap) {
-                if (localMap.has(id)) {
-                    const local = localMap.get(id);
-                    let needsUpdate = false;
-                    const updates = {};
-
-                    for (const field of allowedFields) {
-                        if (field in local && JSON.stringify(local[field]) !== JSON.stringify(remote[field])) {
-                            updates[field] = local[field];
-                            needsUpdate = true;
-                        }
-                    }
-
-                    if (needsUpdate) {
-                        try {
-                            updates.id = id;
-                            await supabaseRequest('PATCH', tableName, updates, `id=eq.${id}`);
-                            recordAction({ type: 'UPDATE', table: tableName, id, oldValue: remote, newValue: updates });
-                            updated++;
-                        } catch (e) {
-                            console.error(`Erro ao atualizar ${tableName}: ${e.message}`);
-                        }
+                    });
+                    
+                    // Garantir que tem ID
+                    if (!cleanItem.id) continue;
+                    
+                    // Usar UPSERT (insere ou atualiza)
+                    await supabaseRequest('POST', tableName, cleanItem, null, true);
+                    synced++;
+                } catch (e) {
+                    // Ignorar erros 409 (já existe) e 400 (constraint)
+                    if (e.status !== 409 && e.status !== 400) {
+                        console.error(`Erro ao sincronizar ${tableName}/${local.id}: ${e.message}`);
                     }
                 }
             }
@@ -190,12 +173,14 @@
                         recordAction({ type: 'DELETE', table: tableName, id, deletedValue: remote });
                         deleted++;
                     } catch (e) {
-                        console.error(`Erro ao deletar ${tableName}: ${e.message}`);
+                        // Ignorar erros de delete
                     }
                 }
             }
 
-            console.log(`✅ ${tableName}: +${created} criados, ↻${updated} atualizados, -${deleted} deletados`);
+            if (synced > 0 || deleted > 0) {
+                console.log(`✅ ${tableName}: ${synced} sincronizados, -${deleted} deletados`);
+            }
             return true;
         } catch (e) {
             console.error(`Erro ao sincronizar ${tableName}: ${e.message}`);
