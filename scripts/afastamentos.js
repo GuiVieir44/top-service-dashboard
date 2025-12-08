@@ -62,7 +62,8 @@ function addAfastamento(data) {
     }
     
     var list = loadAfastamentos();
-    data.id = Date.now();
+    // Gerar UUID para compatibilidade com Supabase
+    data.id = 'afast_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     list.push(data);
     
     try {
@@ -71,6 +72,12 @@ function addAfastamento(data) {
         var saved = loadAfastamentos();
         if (saved.some(a => a.id === data.id)) {
             console.log('%c[AFAST] ✅ Afastamento registrado e validado', 'color: #27ae60;', data.id);
+            
+            // ☁️ SINCRONIZAR COM SUPABASE
+            if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+                console.log('☁️ Enviando afastamento para Supabase...');
+                window.supabaseRealtime.insert('afastamentos', data);
+            }
         } else {
             console.warn('%c[AFAST] ⚠️  Falha na validação de salvamento', 'color: #f39c12;');
         }
@@ -89,6 +96,13 @@ function deleteAfastamento(id) {
     if (!confirm('Confirma remoção deste afastamento?')) return;
     var list = loadAfastamentos().filter(function(a){ return a.id !== id; });
     saveAfastamentos(list);
+    
+    // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        console.log('🗑️ Removendo afastamento do Supabase...');
+        window.supabaseRealtime.remove('afastamentos', id);
+    }
+    
     // Garantir persistência
     setTimeout(() => saveAfastamentos(list), 100);
     renderAfastamentos();

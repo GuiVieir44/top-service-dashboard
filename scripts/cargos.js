@@ -45,7 +45,7 @@ function getCargos() {
  * Obtém cargo por ID
  */
 function getCargoById(id) {
-    return cargos.find(c => c.id === id) || null;
+    return cargos.find(c => String(c.id) === String(id)) || null;
 }
 
 /**
@@ -69,7 +69,9 @@ function addCargo(nome, horasDia) {
         return null;
     }
 
-    const newId = cargos.length > 0 ? Math.max(...cargos.map(c => c.id)) + 1 : 1;
+    // Gerar UUID para compatibilidade com Supabase
+    const newId = 'cargo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
     // Permite informar banco de horas ao criar
     let bancoHoras = 0;
     if (window.promptBancoHoras) {
@@ -93,7 +95,8 @@ function addCargo(nome, horasDia) {
  * Atualiza cargo
  */
 function updateCargo(id, nome, horasDia) {
-    const index = cargos.findIndex(c => c.id === id);
+    // Comparação com string para compatibilidade
+    const index = cargos.findIndex(c => String(c.id) === String(id));
     if (index === -1) {
         console.warn('Cargo não encontrado');
         return null;
@@ -119,7 +122,8 @@ function updateCargo(id, nome, horasDia) {
  * Deleta cargo
  */
 function deleteCargo(id) {
-    const index = cargos.findIndex(c => c.id === id);
+    // Comparação com string para compatibilidade
+    const index = cargos.findIndex(c => String(c.id) === String(id));
     if (index === -1) return false;
     
     cargos.splice(index, 1);

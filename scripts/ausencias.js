@@ -10,38 +10,58 @@ console.log('📋 Arquivo ausencias.js carregado!');
  */
 function saveAbsence(employeeId, date, type) {
     // type: 'falta' ou 'feriado'
-    const absences = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
     
     // Remover se já existe
     const filtered = absences.filter(a => !(a.employeeId == employeeId && a.date === date));
     
+    // Gerar UUID para compatibilidade com Supabase
+    const absenceId = 'aus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
     // Adicionar nova ausência
-    filtered.push({
-        id: Date.now(),
+    const newAbsence = {
+        id: absenceId,
         employeeId: Number(employeeId),
         date: date,
         type: type // 'falta' ou 'feriado'
-    });
+    };
+    filtered.push(newAbsence);
     
-    localStorage.setItem('topservice_absences_v1', JSON.stringify(filtered));
+    localStorage.setItem('topservice_ausencias_v1', JSON.stringify(filtered));
     console.log(`✅ Ausência salva: ${type} para funcionário ${employeeId} em ${date}`);
+    
+    // ☁️ SINCRONIZAR COM SUPABASE
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando ausência para Supabase...');
+        window.supabaseRealtime.insert('ausencias', newAbsence);
+    }
 }
 
 /**
  * Remove ausência
  */
 function removeAbsence(employeeId, date) {
-    const absences = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
+    
+    // Encontrar a ausência para obter o ID antes de remover
+    const absenceToRemove = absences.find(a => a.employeeId == employeeId && a.date === date);
+    
     const filtered = absences.filter(a => !(a.employeeId == employeeId && a.date === date));
-    localStorage.setItem('topservice_absences_v1', JSON.stringify(filtered));
+    localStorage.setItem('topservice_ausencias_v1', JSON.stringify(filtered));
     console.log(`🗑️ Ausência removida para funcionário ${employeeId} em ${date}`);
+    
+    // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
+    if (absenceToRemove && window.supabaseRealtime && window.supabaseRealtime.remove) {
+        console.log('🗑️ Removendo ausência do Supabase...');
+        window.supabaseRealtime.remove('ausencias', absenceToRemove.id);
+    }
 }
 
 /**
  * Obtém ausência de um dia específico
  */
 function getAbsenceForDay(employeeId, date) {
-    const absences = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
     return absences.find(a => a.employeeId == employeeId && a.date === date);
 }
 
@@ -49,7 +69,7 @@ function getAbsenceForDay(employeeId, date) {
  * Obtém todas as ausências de um funcionário
  */
 function getAbsencesByEmployee(employeeId, startDate = null, endDate = null) {
-    const absences = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
     let filtered = absences.filter(a => a.employeeId == employeeId);
     
     if (startDate && endDate) {

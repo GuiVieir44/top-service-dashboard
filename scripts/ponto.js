@@ -110,8 +110,12 @@ function calculateTodayAdvancements() {
 function registerPunch(employeeId, type, rf = null) {
     var punches = loadPunches();
     var now = new Date();
+    
+    // Gerar UUID para compatibilidade com Supabase
+    var punchId = 'punch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    
     var punch = {
-        id: Date.now(),
+        id: punchId,
         employeeId: employeeId,
         type: type,
         timestamp: now.toISOString(),
@@ -124,6 +128,12 @@ function registerPunch(employeeId, type, rf = null) {
         var saved = loadPunches();
         if (saved.some(p => p.id === punch.id)) {
             console.log('%c[PUNCH] ✅ Ponto registrado', 'color: #27ae60;', punch);
+            
+            // ☁️ SINCRONIZAR COM SUPABASE
+            if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+                console.log('☁️ Enviando ponto para Supabase...');
+                window.supabaseRealtime.insert('punches', punch);
+            }
             
             // 🔥 RENDERIZAR TABELA IMEDIATAMENTE
             if (typeof renderPunches === 'function') {
@@ -162,6 +172,13 @@ function deletePunch(id) {
     if (!confirm('Confirma exclusão deste registro de ponto?')) return;
     var punches = loadPunches().filter(function(p){ return p.id !== id; });
     savePunches(punches);
+    
+    // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        console.log('🗑️ Removendo ponto do Supabase...');
+        window.supabaseRealtime.remove('punches', id);
+    }
+    
     // Garantir persistência
     setTimeout(() => savePunches(punches), 100);
     renderPunches();
