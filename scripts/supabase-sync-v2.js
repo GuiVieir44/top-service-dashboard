@@ -225,8 +225,13 @@
             }));
             await smartSync('afastamentos', afastamentos, ['id', 'employeeid', 'start_date', 'end_date', 'days', 'type']);
 
-            // ===== 4. DEPARTAMENTOS =====
-            const departamentos = window.departamentos || [];
+            // ===== 4. DEPARTAMENTOS (nome → name para Supabase) =====
+            const departamentosRaw = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
+            const departamentos = departamentosRaw.map(d => ({
+                id: d.id,
+                name: d.nome || d.name || '',  // JS usa 'nome', Supabase usa 'name'
+                description: d.description || ''
+            }));
             await smartSync('departamentos', departamentos, ['id', 'name', 'description']);
 
             // ===== 5. CARGOS =====
@@ -313,7 +318,7 @@
         }
     }
 
-    // ===== DOWNLOAD (MULTI-DISPOSITIVO) =====
+    // ===== DOWNLOAD (MULTI-DISPOSITIVO) - VERSÃO CORRIGIDA =====
     async function downloadAllData() {
         if (!isConnected) return false;
 
@@ -334,162 +339,138 @@
                 supabaseRequest('GET', 'ferias')
             ]);
 
+            // Função auxiliar para merge inteligente (sem duplicar)
+            function smartMerge(local, remote, normalize = item => item) {
+                const map = new Map();
+                // Primeiro adiciona locais
+                local.forEach(item => map.set(item.id, item));
+                // Depois adiciona/atualiza com remotos (normalizado)
+                remote.forEach(item => {
+                    const normalized = normalize(item);
+                    if (!map.has(normalized.id)) {
+                        map.set(normalized.id, normalized);
+                    }
+                });
+                return Array.from(map.values());
+            }
+
             // ===== EMPLOYEES =====
             if (employees && employees.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-                const localIds = new Set(local.map(e => e.id));
-                const newItems = employees.filter(e => !localIds.has(e.id));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_employees_v1', JSON.stringify(merged));
-                    window.employees = merged;
-                    console.log(`⬇️ ${newItems.length} employees baixados`);
-                }
+                const merged = smartMerge(local, employees);
+                localStorage.setItem('topservice_employees_v1', JSON.stringify(merged));
+                window.employees = merged;
+                console.log(`⬇️ employees: ${merged.length} total`);
             }
 
             // ===== PUNCHES =====
             if (punches && punches.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-                const localIds = new Set(local.map(p => p.id));
-                const newItems = punches.filter(p => !localIds.has(p.id)).map(p => ({
+                const merged = smartMerge(local, punches, p => ({
                     ...p, 
                     employeeId: p.employeeid || p.employeeId
                 }));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_punches_v1', JSON.stringify(merged));
-                    window.punches = merged;
-                    console.log(`⬇️ ${newItems.length} punches baixados`);
-                }
+                localStorage.setItem('topservice_punches_v1', JSON.stringify(merged));
+                window.punches = merged;
+                console.log(`⬇️ punches: ${merged.length} total`);
             }
 
-            // ===== DEPARTAMENTOS =====
+            // ===== DEPARTAMENTOS (nome ↔ name) =====
             if (departamentos && departamentos.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
-                const localIds = new Set(local.map(d => d.id));
-                const newItems = departamentos.filter(d => !localIds.has(d.id));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_departamentos_v1', JSON.stringify(merged));
-                    window.departamentos = merged;
-                    console.log(`⬇️ ${newItems.length} departamentos baixados`);
-                }
+                const merged = smartMerge(local, departamentos, d => ({
+                    id: d.id,
+                    nome: d.nome || d.name || '',  // Supabase usa 'name', JS usa 'nome'
+                    name: d.name || d.nome || '',
+                    description: d.description || ''
+                }));
+                localStorage.setItem('topservice_departamentos_v1', JSON.stringify(merged));
+                window.departamentos = merged;
+                console.log(`⬇️ departamentos: ${merged.length} total`);
             }
 
             // ===== CARGOS =====
             if (cargos && cargos.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_cargos_v1') || '[]');
-                const localIds = new Set(local.map(c => c.id));
-                const newItems = cargos.filter(c => !localIds.has(c.id));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_cargos_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} cargos baixados`);
-                }
+                const merged = smartMerge(local, cargos);
+                localStorage.setItem('topservice_cargos_v1', JSON.stringify(merged));
+                console.log(`⬇️ cargos: ${merged.length} total`);
             }
 
             // ===== AFASTAMENTOS =====
             if (afastamentos && afastamentos.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_afastamentos_v1') || '[]');
-                const localIds = new Set(local.map(a => a.id));
-                const newItems = afastamentos.filter(a => !localIds.has(a.id)).map(a => ({
+                const merged = smartMerge(local, afastamentos, a => ({
                     ...a,
                     employeeId: a.employeeid || a.employeeId,
                     startDate: a.start_date || a.startDate,
                     endDate: a.end_date || a.endDate
                 }));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_afastamentos_v1', JSON.stringify(merged));
-                    window.afastamentos = merged;
-                    console.log(`⬇️ ${newItems.length} afastamentos baixados`);
-                }
+                localStorage.setItem('topservice_afastamentos_v1', JSON.stringify(merged));
+                window.afastamentos = merged;
+                console.log(`⬇️ afastamentos: ${merged.length} total`);
             }
 
             // ===== AUSENCIAS =====
             if (ausencias && ausencias.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
-                const localIds = new Set(local.map(a => a.id));
-                const newItems = ausencias.filter(a => !localIds.has(a.id)).map(a => ({
+                const merged = smartMerge(local, ausencias, a => ({
                     ...a,
                     employeeId: a.employeeid || a.employeeId
                 }));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_absences_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} ausencias baixados`);
-                }
+                localStorage.setItem('topservice_absences_v1', JSON.stringify(merged));
+                console.log(`⬇️ ausencias: ${merged.length} total`);
             }
 
             // ===== USERS =====
             if (users && users.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_users_v1') || '[]');
-                const localIds = new Set(local.map(u => u.id));
-                const newItems = users.filter(u => !localIds.has(u.id));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_users_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} users baixados`);
-                }
+                const merged = smartMerge(local, users);
+                localStorage.setItem('topservice_users_v1', JSON.stringify(merged));
+                console.log(`⬇️ users: ${merged.length} total`);
             }
 
             // ===== CONFIGURACOES =====
             if (configuracoes && configuracoes.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_configuracoes_v1') || '[]');
-                const localIds = new Set(local.map(c => c.id));
-                const newItems = configuracoes.filter(c => !localIds.has(c.id));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_configuracoes_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} configuracoes baixados`);
-                }
+                const merged = smartMerge(local, configuracoes);
+                localStorage.setItem('topservice_configuracoes_v1', JSON.stringify(merged));
+                console.log(`⬇️ configuracoes: ${merged.length} total`);
             }
 
             // ===== BANCO HORAS =====
             if (bancoHoras && bancoHoras.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_banco_horas_v1') || '[]');
-                const localIds = new Set(local.map(b => b.id));
-                const newItems = bancoHoras.filter(b => !localIds.has(b.id)).map(b => ({
+                const merged = smartMerge(local, bancoHoras, b => ({
                     ...b,
                     employeeId: b.employeeid || b.employeeId
                 }));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_banco_horas_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} banco_horas baixados`);
-                }
+                localStorage.setItem('topservice_banco_horas_v1', JSON.stringify(merged));
+                console.log(`⬇️ banco_horas: ${merged.length} total`);
             }
 
             // ===== ADIANTAMENTOS =====
             if (adiantamentos && adiantamentos.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_adiantamentos_v1') || '[]');
-                const localIds = new Set(local.map(a => a.id));
-                const newItems = adiantamentos.filter(a => !localIds.has(a.id)).map(a => ({
+                const merged = smartMerge(local, adiantamentos, a => ({
                     ...a,
                     employeeId: a.employeeid || a.employeeId
                 }));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_adiantamentos_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} adiantamentos baixados`);
-                }
+                localStorage.setItem('topservice_adiantamentos_v1', JSON.stringify(merged));
+                console.log(`⬇️ adiantamentos: ${merged.length} total`);
             }
 
             // ===== FERIAS =====
             if (ferias && ferias.length > 0) {
                 const local = JSON.parse(localStorage.getItem('topservice_ferias_v1') || '[]');
-                const localIds = new Set(local.map(f => f.id));
-                const newItems = ferias.filter(f => !localIds.has(f.id)).map(f => ({
+                const merged = smartMerge(local, ferias, f => ({
                     ...f,
                     employeeId: f.employeeid || f.employeeId,
                     dataInicio: f.data_inicio || f.dataInicio,
                     dataFim: f.data_fim || f.dataFim
                 }));
-                if (newItems.length > 0) {
-                    const merged = [...local, ...newItems];
-                    localStorage.setItem('topservice_ferias_v1', JSON.stringify(merged));
-                    console.log(`⬇️ ${newItems.length} ferias baixados`);
-                }
+                localStorage.setItem('topservice_ferias_v1', JSON.stringify(merged));
+                console.log(`⬇️ ferias: ${merged.length} total`);
             }
 
             // Disparar evento para atualizar UI
