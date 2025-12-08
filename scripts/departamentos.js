@@ -124,12 +124,43 @@ function renderDepartments() {
     }
     list.forEach(function(d){
         var tr = document.createElement('tr');
-        // Escapar ID corretamente (pode ser string ou número)
-        var escapedId = String(d.id).replace(/'/g, "\\'");
-        var escapedNome = String(d.nome || '').replace(/'/g, "\\'");
-        tr.innerHTML = '<td style="padding:8px;border:1px solid #e6e6e6;">' + (d.nome || '') + '</td>' +
-                       '<td style="padding:8px;border:1px solid #e6e6e6;">' + (d.description || '') + '</td>' +
-                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;"><button style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;" onclick="abrirCargosDepartamentoModal(\'' + escapedId + '\', \'' + escapedNome + '\')" >Cargos</button><button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deleteDepartment(\'' + escapedId + '\')">Excluir</button></td>';
+        
+        // Célula Nome
+        var tdNome = document.createElement('td');
+        tdNome.style.cssText = 'padding:8px;border:1px solid #e6e6e6;';
+        tdNome.textContent = d.nome || '';
+        
+        // Célula Descrição
+        var tdDesc = document.createElement('td');
+        tdDesc.style.cssText = 'padding:8px;border:1px solid #e6e6e6;';
+        tdDesc.textContent = d.description || '';
+        
+        // Célula Ações
+        var tdAcoes = document.createElement('td');
+        tdAcoes.style.cssText = 'padding:8px;border:1px solid #e6e6e6;text-align:center;';
+        
+        // Botão Cargos
+        var btnCargos = document.createElement('button');
+        btnCargos.style.cssText = 'background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;';
+        btnCargos.textContent = 'Cargos';
+        btnCargos.addEventListener('click', function() {
+            abrirCargosDepartamentoModal(d.id, d.nome || '');
+        });
+        
+        // Botão Excluir
+        var btnExcluir = document.createElement('button');
+        btnExcluir.style.cssText = 'background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;';
+        btnExcluir.textContent = 'Excluir';
+        btnExcluir.addEventListener('click', function() {
+            deleteDepartment(d.id);
+        });
+        
+        tdAcoes.appendChild(btnCargos);
+        tdAcoes.appendChild(btnExcluir);
+        
+        tr.appendChild(tdNome);
+        tr.appendChild(tdDesc);
+        tr.appendChild(tdAcoes);
         tbody.appendChild(tr);
     });
 }
