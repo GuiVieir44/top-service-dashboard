@@ -1,13 +1,13 @@
 // ==========================================
-// SUPABASE REALTIME - SINCRONIZAÇÃO EM TEMPO REAL
+// SUPABASE REALTIME v2 - SINCRONIZAÇÃO CORRIGIDA
 // ==========================================
-// Usa WebSocket para receber atualizações instantâneas
-// Quando alguém muda dados em um dispositivo, aparece imediatamente nos outros
+// CORRIGIDO: Agora preserva dados locais e faz merge inteligente
+// Não perde mais dados ao recarregar a página
 
 (function() {
     'use strict';
     
-    console.log('🚀 Supabase Realtime - Iniciando...');
+    console.log('🚀 Supabase Realtime v2 - Iniciando...');
 
     // ===== CONFIGURAÇÃO =====
     const SUPABASE_URL = 'https://szwqezafiilwxgpyukxq.supabase.co';
@@ -26,8 +26,28 @@
     };
 
     let isConnected = false;
-    let realtimeChannel = null;
     let ws = null;
+    let syncInProgress = false;
+
+    // ===== GERAR UUID =====
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    // ===== NORMALIZAR ID PARA UUID =====
+    function ensureUUID(id) {
+        if (!id) return generateUUID();
+        // Se já é UUID (contém hífens e tem pelo menos 32 caracteres)
+        if (typeof id === 'string' && id.includes('-') && id.length >= 32) {
+            return id;
+        }
+        // Se é número ou string sem hífen, gerar novo UUID
+        return generateUUID();
+    }
 
     // ===== API REST =====
     async function apiRequest(method, table, data = null, filter = '') {
@@ -49,9 +69,16 @@
         
         try {
             const response = await fetch(url, options);
+            
+            // 409 Conflict significa que já existe - não é erro
+            if (response.status === 409) {
+                console.log(`⚠️ ${table}: registro já existe, ignorando...`);
+                return [];
+            }
+            
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error(`❌ API ${method} ${table}: ${errorText}`);
+                console.error(`❌ API ${method} ${table}: ${response.status} - ${errorText}`);
                 return null;
             }
             
@@ -63,7 +90,7 @@
         }
     }
 
-    // ===== NORMALIZAÇÃO DE DADOS =====
+    // ===== NORMALIZAÇÃO DE DADOS (Supabase -> Local) =====
     function normalizeFromSupabase(table, data) {
         if (!Array.isArray(data)) return [];
         
@@ -82,51 +109,221 @@
                     employeeId: item.employeeid || item.employeeId
                 };
             }
+            if (table === 'employees') {
+                return {
+                    id: item.id,
+                    matricula: item.matricula,
+                    nome: item.nome,
+                    cargo: item.cargo,
+                    departamento: item.departamento,
+                    adicional: item.adicional,
+                    valeAlimentacao: item.valealimentacao || item.valeAlimentacao,
+                    valeTransporte: item.valetransporte || item.valeTransporte,
+                    cpf: item.cpf,
+                    email: item.email,
+                    admissao: item.admissao,
+                    telefone: item.telefone,
+                    endereco: item.endereco,
+                    status: item.status
+                };
+            }
             return item;
         });
     }
 
+    // ===== NORMALIZAÇÃO DE DADOS (Local -> Supabase) =====
     function normalizeToSupabase(table, item) {
+        // Garantir que o ID seja UUID
+        const normalizedId = ensureUUID(item.id);
+        
         if (table === 'departamentos') {
             return {
-                id: item.id,
+                id: normalizedId,
                 name: item.nome || item.name || '',
                 description: item.description || ''
             };
         }
         if (table === 'punches') {
             return {
-                id: item.id,
+                id: normalizedId,
                 employeeid: item.employeeId || item.employeeid,
                 type: item.type,
                 timestamp: item.timestamp,
                 status: item.status
             };
         }
-        return item;
+        if (table === 'employees') {
+            return {
+                id: normalizedId,
+                matricula: item.matricula,
+                nome: item.nome,
+                cargo: item.cargo,
+                departamento: item.departamento,
+                adicional: item.adicional,
+                valealimentacao: item.valeAlimentacao || item.valealimentacao,
+                valetransporte: item.valeTransporte || item.valetransporte,
+                cpf: item.cpf,
+                email: item.email,
+                admissao: item.admissao,
+                telefone: item.telefone,
+                endereco: item.endereco,
+                status: item.status
+            };
+        }
+        
+        return { ...item, id: normalizedId };
     }
 
-    // ===== CARREGAR DADOS INICIAIS =====
-    async function loadInitialData() {
-        console.log('📥 Carregando dados iniciais do Supabase...');
+    // ===== CARREGAR DADOS LOCAIS =====
+    function getLocalData(table) {
+        const config = TABLES[table];
+        if (!config) return [];
+        
+        try {
+            const stored = localStorage.getItem(config.localStorage);
+            return stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            console.error(`❌ Erro ao ler ${table} do localStorage:`, e);
+            return [];
+        }
+    }
+
+    // ===== SALVAR DADOS LOCAIS =====
+    function setLocalData(table, data) {
+        const config = TABLES[table];
+        if (!config) return;
+        
+        localStorage.setItem(config.localStorage, JSON.stringify(data));
+        window[table] = data;
+    }
+
+    // ===== MERGE INTELIGENTE (NÃO PERDE DADOS) =====
+    function mergeData(localData, remoteData) {
+        // Criar mapa de IDs remotos
+        const remoteMap = new Map();
+        for (const item of remoteData) {
+            remoteMap.set(String(item.id), item);
+        }
+        
+        const merged = [];
+        const processedIds = new Set();
+        
+        // Primeiro, processar itens locais
+        for (const localItem of localData) {
+            const localId = String(localItem.id);
+            const remoteItem = remoteMap.get(localId);
+            
+            if (remoteItem) {
+                // Item existe em ambos - usar versão remota (mais recente)
+                merged.push(remoteItem);
+            } else {
+                // Item só existe local - manter
+                merged.push(localItem);
+            }
+            processedIds.add(localId);
+        }
+        
+        // Depois, adicionar itens remotos que não existem local
+        for (const remoteItem of remoteData) {
+            if (!processedIds.has(String(remoteItem.id))) {
+                merged.push(remoteItem);
+            }
+        }
+        
+        return merged;
+    }
+
+    // ===== UPLOAD DE DADOS LOCAIS PARA SUPABASE =====
+    async function uploadLocalData() {
+        console.log('📤 Enviando dados locais para Supabase...');
+        
+        for (const [table, config] of Object.entries(TABLES)) {
+            const local = getLocalData(table);
+            
+            if (local.length === 0) {
+                console.log(`📭 ${table}: nenhum dado local`);
+                continue;
+            }
+            
+            console.log(`📤 ${table}: enviando ${local.length} registros...`);
+            
+            let updated = false;
+            for (let i = 0; i < local.length; i++) {
+                const item = local[i];
+                try {
+                    const normalized = normalizeToSupabase(table, item);
+                    
+                    // Atualizar o ID local se foi convertido para UUID
+                    if (normalized.id !== item.id) {
+                        local[i].id = normalized.id;
+                        updated = true;
+                    }
+                    
+                    await apiRequest('POST', table, normalized);
+                } catch (e) {
+                    console.error(`❌ Erro ao enviar ${table}:`, e);
+                }
+            }
+            
+            // Salvar com IDs atualizados
+            if (updated) {
+                setLocalData(table, local);
+            }
+        }
+        
+        console.log('✅ Upload concluído!');
+    }
+
+    // ===== DOWNLOAD DE DADOS DO SUPABASE (COM MERGE) =====
+    async function downloadAndMerge() {
+        console.log('📥 Baixando dados do Supabase (com merge)...');
         
         for (const [table, config] of Object.entries(TABLES)) {
             try {
-                const data = await apiRequest('GET', table);
-                if (data !== null) {
-                    const normalized = normalizeFromSupabase(table, data);
-                    localStorage.setItem(config.localStorage, JSON.stringify(normalized));
-                    window[table] = normalized;
-                    console.log(`✅ ${table}: ${normalized.length} registros`);
+                const remoteData = await apiRequest('GET', table);
+                
+                if (remoteData === null) {
+                    console.log(`⚠️ ${table}: falha ao baixar, mantendo dados locais`);
+                    continue;
                 }
+                
+                const normalized = normalizeFromSupabase(table, remoteData);
+                const localData = getLocalData(table);
+                
+                // MERGE: Juntar dados locais + remotos (sem perder nada)
+                const merged = mergeData(localData, normalized);
+                
+                setLocalData(table, merged);
+                console.log(`✅ ${table}: ${merged.length} registros (local: ${localData.length}, remoto: ${normalized.length})`);
             } catch (error) {
-                console.error(`❌ Erro ao carregar ${table}:`, error);
+                console.error(`❌ Erro ao baixar ${table}:`, error);
             }
         }
         
         // Atualizar UI
         updateAllUI();
-        console.log('✅ Dados iniciais carregados!');
+        console.log('✅ Download e merge concluídos!');
+    }
+
+    // ===== DOWNLOAD FORÇADO (SUBSTITUI LOCAL) =====
+    async function forceDownload() {
+        console.log('📥 Download forçado do Supabase (substitui local)...');
+        
+        for (const [table, config] of Object.entries(TABLES)) {
+            try {
+                const remoteData = await apiRequest('GET', table);
+                
+                if (remoteData !== null) {
+                    const normalized = normalizeFromSupabase(table, remoteData);
+                    setLocalData(table, normalized);
+                    console.log(`✅ ${table}: ${normalized.length} registros`);
+                }
+            } catch (error) {
+                console.error(`❌ Erro ao baixar ${table}:`, error);
+            }
+        }
+        
+        updateAllUI();
     }
 
     // ===== ATUALIZAR UI =====
@@ -139,6 +336,15 @@
                     // Função pode não estar disponível em todas as páginas
                 }
             }
+        }
+        
+        // Atualizar métricas do dashboard se disponível
+        if (window.navigationSystem && typeof window.navigationSystem.updateDashboardMetrics === 'function') {
+            setTimeout(() => {
+                try {
+                    window.navigationSystem.updateDashboardMetrics();
+                } catch (e) {}
+            }, 100);
         }
     }
 
@@ -165,13 +371,8 @@
             console.log('✅ WebSocket conectado!');
             isConnected = true;
             
-            // Enviar heartbeat inicial
             sendHeartbeat();
-            
-            // Inscrever em todas as tabelas
             subscribeToAllTables();
-            
-            // Heartbeat a cada 30 segundos para manter conexão
             setInterval(sendHeartbeat, 30000);
         };
         
@@ -179,9 +380,7 @@
             try {
                 const message = JSON.parse(event.data);
                 handleRealtimeMessage(message);
-            } catch (e) {
-                // Ignorar mensagens que não são JSON
-            }
+            } catch (e) {}
         };
         
         ws.onerror = (error) => {
@@ -190,9 +389,9 @@
         };
         
         ws.onclose = () => {
-            console.log('🔌 WebSocket desconectado. Reconectando em 3s...');
+            console.log('🔌 WebSocket desconectado. Reconectando em 5s...');
             isConnected = false;
-            setTimeout(connectRealtime, 3000);
+            setTimeout(connectRealtime, 5000);
         };
     }
 
@@ -236,12 +435,10 @@
     }
 
     function handleRealtimeMessage(message) {
-        // Ignorar heartbeats e replies
         if (message.event === 'phx_reply' || message.event === 'heartbeat') {
             return;
         }
         
-        // Processar mudanças no banco
         if (message.event === 'postgres_changes' || message.payload?.type) {
             const payload = message.payload;
             const eventType = payload.type || payload.eventType;
@@ -251,7 +448,7 @@
             
             console.log(`🔔 Realtime: ${eventType} em ${table}`);
             
-            // Recarregar dados da tabela afetada
+            // Recarregar a tabela afetada
             reloadTable(table);
         }
     }
@@ -264,10 +461,13 @@
             const data = await apiRequest('GET', table);
             if (data !== null) {
                 const normalized = normalizeFromSupabase(table, data);
-                localStorage.setItem(config.localStorage, JSON.stringify(normalized));
-                window[table] = normalized;
+                const localData = getLocalData(table);
+                
+                // Fazer merge para não perder dados locais pendentes
+                const merged = mergeData(localData, normalized);
+                setLocalData(table, merged);
                 updateTableUI(table);
-                console.log(`🔄 ${table} atualizado: ${normalized.length} registros`);
+                console.log(`🔄 ${table} atualizado: ${merged.length} registros`);
             }
         } catch (error) {
             console.error(`❌ Erro ao recarregar ${table}:`, error);
@@ -276,23 +476,21 @@
 
     // ===== OPERAÇÕES CRUD =====
     
-    // INSERT - Criar novo registro
+    // INSERT
     async function insert(table, data) {
         const normalized = normalizeToSupabase(table, data);
         const result = await apiRequest('POST', table, normalized);
         
         if (result) {
             // Atualizar local imediatamente
-            const config = TABLES[table];
-            const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
+            const local = getLocalData(table);
             const normalizedResult = normalizeFromSupabase(table, result);
             
             // Evitar duplicação
-            const exists = local.find(item => item.id === data.id);
+            const exists = local.find(item => String(item.id) === String(normalized.id));
             if (!exists) {
                 local.push(...normalizedResult);
-                localStorage.setItem(config.localStorage, JSON.stringify(local));
-                window[table] = local;
+                setLocalData(table, local);
             }
             
             updateTableUI(table);
@@ -302,22 +500,19 @@
         return null;
     }
 
-    // UPDATE - Atualizar registro
+    // UPDATE
     async function update(table, id, data) {
         const normalized = normalizeToSupabase(table, { ...data, id });
         const result = await apiRequest('PATCH', table, normalized, `id=eq.${id}`);
         
         if (result) {
-            // Atualizar local imediatamente
-            const config = TABLES[table];
-            const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
-            const index = local.findIndex(item => item.id === id);
+            const local = getLocalData(table);
+            const index = local.findIndex(item => String(item.id) === String(id));
             
             if (index !== -1) {
                 const normalizedResult = normalizeFromSupabase(table, result);
                 local[index] = normalizedResult[0] || { ...local[index], ...data };
-                localStorage.setItem(config.localStorage, JSON.stringify(local));
-                window[table] = local;
+                setLocalData(table, local);
             }
             
             updateTableUI(table);
@@ -327,46 +522,54 @@
         return null;
     }
 
-    // DELETE - Remover registro
+    // DELETE
     async function remove(table, id) {
-        const result = await apiRequest('DELETE', table, null, `id=eq.${id}`);
+        await apiRequest('DELETE', table, null, `id=eq.${id}`);
         
-        // Atualizar local imediatamente (mesmo se API falhar, para UX)
-        const config = TABLES[table];
-        const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
-        const filtered = local.filter(item => item.id !== id);
-        localStorage.setItem(config.localStorage, JSON.stringify(filtered));
-        window[table] = filtered;
+        // Atualizar local
+        const local = getLocalData(table);
+        const filtered = local.filter(item => String(item.id) !== String(id));
+        setLocalData(table, filtered);
         
         updateTableUI(table);
         console.log(`🗑️ Removido de ${table}: ${id}`);
         return true;
     }
 
-    // ===== SYNC MANUAL =====
+    // ===== SYNC COMPLETO =====
     async function syncAll() {
-        console.log('🔄 Sincronização manual...');
-        
-        // Upload dados locais para Supabase
-        for (const [table, config] of Object.entries(TABLES)) {
-            const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
-            
-            for (const item of local) {
-                if (item.id) {
-                    const normalized = normalizeToSupabase(table, item);
-                    await apiRequest('POST', table, normalized);
-                }
-            }
+        if (syncInProgress) {
+            console.log('⏳ Sincronização já em andamento...');
+            return;
         }
         
-        // Download dados do Supabase
-        await loadInitialData();
+        syncInProgress = true;
+        console.log('🔄 Sincronização completa...');
+        showSyncStatus('Sincronizando...', 'info');
         
-        console.log('✅ Sincronização completa!');
+        try {
+            // 1. Upload dados locais primeiro
+            await uploadLocalData();
+            
+            // 2. Download e merge
+            await downloadAndMerge();
+            
+            showSyncStatus('Sincronizado!', 'success');
+            console.log('✅ Sincronização completa!');
+        } catch (e) {
+            console.error('❌ Erro na sincronização:', e);
+            showSyncStatus('Erro na sincronização', 'error');
+        } finally {
+            syncInProgress = false;
+        }
     }
 
     // ===== LIMPAR TUDO =====
     async function clearAll() {
+        if (!confirm('⚠️ ATENÇÃO: Isso vai apagar TODOS os dados locais e do servidor. Continuar?')) {
+            return;
+        }
+        
         console.log('🗑️ Limpando todos os dados...');
         
         for (const [table, config] of Object.entries(TABLES)) {
@@ -381,8 +584,7 @@
         }
         
         updateAllUI();
-        console.log('✅ Tudo limpo! Recarregando...');
-        setTimeout(() => location.reload(), 1000);
+        showSyncStatus('Tudo limpo!', 'success');
     }
 
     // ===== VERIFICAR CONEXÃO =====
@@ -390,7 +592,6 @@
         try {
             const result = await apiRequest('GET', 'employees', null, 'limit=1');
             isConnected = result !== null;
-            console.log(isConnected ? '✅ Conectado ao Supabase' : '❌ Sem conexão');
             return isConnected;
         } catch {
             isConnected = false;
@@ -398,40 +599,8 @@
         }
     }
 
-    // ===== EXPOR API GLOBAL =====
-    window.supabaseRealtime = {
-        // CRUD
-        insert,
-        update,
-        remove,
-        
-        // Sync
-        sync: syncAll,
-        reload: loadInitialData,
-        reloadTable,
-        
-        // Utilidades
-        clearAll,
-        checkConnection,
-        getStatus: () => ({ 
-            connected: isConnected, 
-            wsState: ws ? ws.readyState : -1 
-        })
-    };
-
-    // Manter compatibilidade com código antigo
-    window.supabaseSync = {
-        upload: syncAll,
-        download: loadInitialData,
-        sync: syncAll,
-        limparTudo: clearAll,
-        checkConnection,
-        getStatus: () => ({ connected: isConnected, syncing: false })
-    };
-
-    // ===== MOSTRAR STATUS DE SINCRONIZAÇÃO =====
+    // ===== MOSTRAR STATUS =====
     function showSyncStatus(message, type = 'info') {
-        // Remover toast anterior se existir
         const existingToast = document.getElementById('sync-toast');
         if (existingToast) existingToast.remove();
         
@@ -459,7 +628,6 @@
         const icon = type === 'success' ? '✅' : type === 'error' ? '❌' : '🔄';
         toast.innerHTML = `<span>${icon}</span><span>${message}</span>`;
         
-        // Adicionar animação CSS se não existir
         if (!document.getElementById('sync-toast-style')) {
             const style = document.createElement('style');
             style.id = 'sync-toast-style';
@@ -473,103 +641,85 @@
         }
         
         document.body.appendChild(toast);
-        
-        // Auto-remover após 3 segundos (5 segundos para sucesso)
-        setTimeout(() => toast.remove(), type === 'success' ? 5000 : 3000);
+        setTimeout(() => toast.remove(), type === 'success' ? 4000 : 3000);
     }
 
-    // ===== GERAR UUID =====
-    function generateUUID() {
-        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            const r = Math.random() * 16 | 0;
-            const v = c === 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-        });
-    }
+    // ===== EXPOR API GLOBAL =====
+    window.supabaseRealtime = {
+        insert,
+        update,
+        remove,
+        sync: syncAll,
+        reload: downloadAndMerge,
+        forceDownload,
+        reloadTable,
+        clearAll,
+        checkConnection,
+        getStatus: () => ({ connected: isConnected, wsState: ws ? ws.readyState : -1, syncing: syncInProgress })
+    };
 
-    // ===== UPLOAD DADOS LOCAIS PENDENTES =====
-    async function uploadLocalData() {
-        console.log('📤 Enviando dados locais para o Supabase...');
-        
-        for (const [table, config] of Object.entries(TABLES)) {
-            const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
-            
-            if (local.length === 0) continue;
-            
-            console.log(`📤 Enviando ${local.length} registros de ${table}...`);
-            
-            for (const item of local) {
-                // Se o ID é numérico, converter para UUID
-                if (typeof item.id === 'number' || (typeof item.id === 'string' && !item.id.includes('-'))) {
-                    item.id = generateUUID();
-                }
-                
-                const normalized = normalizeToSupabase(table, item);
-                await apiRequest('POST', table, normalized);
-            }
-        }
-        
-        console.log('✅ Dados locais enviados!');
-    }
+    // Compatibilidade
+    window.supabaseSync = window.supabaseRealtime;
 
     // ===== INICIALIZAÇÃO =====
     async function init() {
-        console.log('🚀 Iniciando Supabase Realtime...');
+        console.log('🚀 Iniciando Supabase Realtime v2...');
         
-        // Mostrar status na tela
-        showSyncStatus('Sincronizando com servidor...', 'info');
+        // PASSO 1: Carregar dados do localStorage PRIMEIRO (não perder nada)
+        console.log('📂 Carregando dados locais...');
+        for (const [table, config] of Object.entries(TABLES)) {
+            const local = getLocalData(table);
+            window[table] = local;
+            console.log(`📂 ${table}: ${local.length} registros locais`);
+        }
         
-        // PASSO 1: Verificar conexão
+        // Renderizar UI com dados locais imediatamente (sem esperar Supabase)
+        setTimeout(() => updateAllUI(), 100);
+        
+        // PASSO 2: Verificar conexão com Supabase
+        showSyncStatus('Conectando ao servidor...', 'info');
         const connected = await checkConnection();
         
         if (connected) {
-            // PASSO 2: Enviar dados locais pendentes para o Supabase (ANTES de limpar)
+            console.log('✅ Conectado ao Supabase');
+            
+            // PASSO 3: Upload dados locais para Supabase PRIMEIRO
             await uploadLocalData();
             
-            // PASSO 3: Baixar dados frescos do Supabase (isso substitui o localStorage)
-            await loadInitialData();
+            // PASSO 4: Download e merge (não substitui, adiciona/atualiza)
+            await downloadAndMerge();
             
-            // PASSO 4: Conectar ao Realtime para atualizações automáticas
+            // PASSO 5: Conectar WebSocket para atualizações em tempo real
             connectRealtime();
             
             showSyncStatus('Sincronizado! Atualizações automáticas ativas.', 'success');
-            console.log('✅ Supabase Realtime ativo!');
-            console.log('📡 Atualizações em tempo real habilitadas');
+            console.log('✅ Supabase Realtime v2 ativo!');
         } else {
-            showSyncStatus('Sem conexão. Usando dados locais.', 'error');
-            console.log('⚠️ Sem conexão com Supabase.');
+            showSyncStatus('Offline - usando dados locais', 'error');
+            console.log('⚠️ Sem conexão com Supabase. Usando dados locais.');
             
-            // Carregar dados do localStorage se existirem
-            for (const [table, config] of Object.entries(TABLES)) {
-                const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
-                window[table] = local;
-            }
-            updateAllUI();
-            
-            // Tentar reconectar a cada 10 segundos
+            // Tentar reconectar a cada 15 segundos
             setInterval(async () => {
-                if (!isConnected) {
-                    showSyncStatus('Tentando reconectar...', 'info');
+                if (!isConnected && !syncInProgress) {
                     const reconnected = await checkConnection();
                     if (reconnected) {
-                        await uploadLocalData();
-                        await loadInitialData();
+                        showSyncStatus('Reconectado! Sincronizando...', 'info');
+                        await syncAll();
                         connectRealtime();
-                        showSyncStatus('Reconectado! Dados atualizados.', 'success');
                     }
                 }
-            }, 10000);
+            }, 15000);
         }
     }
 
-    // Inicializar IMEDIATAMENTE quando a página carregar
+    // Inicializar quando DOM estiver pronto
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
     }
 
-    console.log('✅ Supabase Realtime carregado!');
+    console.log('✅ Supabase Realtime v2 carregado!');
     console.log('📌 API: supabaseRealtime.insert(), update(), remove(), sync(), clearAll()');
 
 })();

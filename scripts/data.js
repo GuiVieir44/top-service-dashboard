@@ -17,7 +17,7 @@
  * @property {string} endereco - Endereço residencial
  */
 
-// Array de funcionários VAZIO - dados vêm do Supabase
+// Array de funcionários - carregado do localStorage
 const employeesData = [];
 
 // ===== Constantes de Persistência =====
@@ -32,6 +32,23 @@ function generateUUID() {
         return v.toString(16);
     });
 }
+
+// Inicializar dados do localStorage IMEDIATAMENTE
+(function() {
+    try {
+        const stored = localStorage.getItem(EMP_KEY);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (Array.isArray(parsed)) {
+                employees = parsed;
+                window.employees = employees;
+                console.log('✅ [data.js] Funcionários carregados:', employees.length);
+            }
+        }
+    } catch (e) {
+        console.error('❌ [data.js] Erro ao carregar funcionários:', e);
+    }
+})();
 
 // ===== DEBOUNCING =====
 let saveEmployeesTimeout = null;
