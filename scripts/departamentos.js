@@ -114,15 +114,21 @@ function deleteDepartment(id) {
 }
 
 function renderDepartments() {
+    console.log('[DEPT] renderDepartments() chamado');
     var tbody = document.getElementById('dept-list-body');
-    if (!tbody) return;
+    if (!tbody) {
+        console.warn('[DEPT] tbody não encontrado');
+        return;
+    }
     var list = loadDepartments();
+    console.log('[DEPT] Lista para renderizar:', list);
     tbody.innerHTML = '';
     if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#666;">Nenhum departamento cadastrado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#666;">Nenhum departamento cadastrado.</td></tr>';
         return;
     }
     list.forEach(function(d){
+        console.log('[DEPT] Renderizando departamento:', d.id, d.nome);
         var tr = document.createElement('tr');
         
         // Célula Nome
@@ -139,21 +145,31 @@ function renderDepartments() {
         var tdAcoes = document.createElement('td');
         tdAcoes.style.cssText = 'padding:8px;border:1px solid #e6e6e6;text-align:center;';
         
-        // Botão Cargos
+        // Botão Cargos - usando closure para capturar valores
         var btnCargos = document.createElement('button');
         btnCargos.style.cssText = 'background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;';
         btnCargos.textContent = 'Cargos';
-        btnCargos.addEventListener('click', function() {
-            abrirCargosDepartamentoModal(d.id, d.nome || '');
-        });
+        (function(deptId, deptNome) {
+            btnCargos.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[DEPT] Clicou em Cargos:', deptId, deptNome);
+                abrirCargosDepartamentoModal(deptId, deptNome);
+            };
+        })(d.id, d.nome || '');
         
-        // Botão Excluir
+        // Botão Excluir - usando closure para capturar valor
         var btnExcluir = document.createElement('button');
         btnExcluir.style.cssText = 'background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;';
         btnExcluir.textContent = 'Excluir';
-        btnExcluir.addEventListener('click', function() {
-            deleteDepartment(d.id);
-        });
+        (function(deptId) {
+            btnExcluir.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[DEPT] Clicou em Excluir:', deptId);
+                deleteDepartment(deptId);
+            };
+        })(d.id);
         
         tdAcoes.appendChild(btnCargos);
         tdAcoes.appendChild(btnExcluir);
@@ -163,7 +179,14 @@ function renderDepartments() {
         tr.appendChild(tdAcoes);
         tbody.appendChild(tr);
     });
+    console.log('[DEPT] renderDepartments() concluído');
 }
+
+// Expor funções globalmente para garantir acesso
+window.renderDepartments = renderDepartments;
+window.deleteDepartment = deleteDepartment;
+window.addDepartment = addDepartment;
+window.abrirCargosDepartamentoModal = abrirCargosDepartamentoModal;
 
 function abrirCargosDepartamentoModal(deptId, deptName) {
     var modalHTML = `
