@@ -77,24 +77,22 @@
         isSyncing = false;
     }
 
-    // ===== DOWNLOAD: Supabase → Local =====
+    // ===== DOWNLOAD: Supabase → Local (SUBSTITUI, não duplica) =====
     async function downloadAll() {
         if (isSyncing) return;
         isSyncing = true;
-        console.log('⬇️ Baixando dados do Supabase...');
 
         try {
-            // EMPLOYEES
+            // EMPLOYEES - SUBSTITUI completamente
             const employees = await request('GET', 'employees');
-            if (employees && employees.length > 0) {
+            if (employees) {
                 localStorage.setItem('topservice_employees_v1', JSON.stringify(employees));
                 window.employees = employees;
-                console.log(`✅ ${employees.length} employees baixados`);
             }
 
-            // DEPARTAMENTOS
+            // DEPARTAMENTOS - SUBSTITUI completamente
             const deptos = await request('GET', 'departamentos');
-            if (deptos && deptos.length > 0) {
+            if (deptos) {
                 const normalized = deptos.map(d => ({
                     id: d.id,
                     nome: d.name || d.nome || '',
@@ -103,25 +101,25 @@
                 }));
                 localStorage.setItem('topservice_departamentos_v1', JSON.stringify(normalized));
                 window.departamentos = normalized;
-                console.log(`✅ ${normalized.length} departamentos baixados`);
             }
 
-            // PUNCHES
+            // PUNCHES - SUBSTITUI completamente
             const punches = await request('GET', 'punches');
-            if (punches && punches.length > 0) {
+            if (punches) {
                 const normalized = punches.map(p => ({
                     ...p,
                     employeeId: p.employeeid || p.employeeId
                 }));
                 localStorage.setItem('topservice_punches_v1', JSON.stringify(normalized));
                 window.punches = normalized;
-                console.log(`✅ ${normalized.length} punches baixados`);
             }
 
             // Atualizar UI
             if (typeof renderEmployeeList === 'function') renderEmployeeList();
             if (typeof renderDepartments === 'function') renderDepartments();
             if (typeof renderPunches === 'function') renderPunches();
+
+            console.log('⬇️ Dados sincronizados do Supabase');
 
         } catch (e) {
             console.error('Erro no download:', e);
@@ -160,8 +158,14 @@
     setTimeout(async () => {
         await checkConnection();
         if (isConnected) {
-            // Auto-sync a cada 5 segundos (só upload)
-            setInterval(sync, 5000);
+            // Baixar dados na inicialização
+            await downloadAll();
+            
+            // Auto-sync a cada 5 segundos (upload + download)
+            setInterval(async () => {
+                await uploadAll();
+                await downloadAll();
+            }, 5000);
         }
     }, 2000);
 
