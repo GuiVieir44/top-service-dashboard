@@ -124,9 +124,12 @@ function renderDepartments() {
     }
     list.forEach(function(d){
         var tr = document.createElement('tr');
-        tr.innerHTML = '<td style="padding:8px;border:1px solid #e6e6e6;">' + d.nome + '</td>' +
-                       '<td style="padding:8px;border:1px solid #e6e6e6;">' + d.description + '</td>' +
-                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;"><button style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;" onclick="abrirCargosDepartamentoModal(' + d.id + ', \'' + d.nome + '\')" >Cargos</button><button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deleteDepartment(' + d.id + ')">Excluir</button></td>';
+        // Escapar ID corretamente (pode ser string ou número)
+        var escapedId = String(d.id).replace(/'/g, "\\'");
+        var escapedNome = String(d.nome || '').replace(/'/g, "\\'");
+        tr.innerHTML = '<td style="padding:8px;border:1px solid #e6e6e6;">' + (d.nome || '') + '</td>' +
+                       '<td style="padding:8px;border:1px solid #e6e6e6;">' + (d.description || '') + '</td>' +
+                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;"><button style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;" onclick="abrirCargosDepartamentoModal(\'' + escapedId + '\', \'' + escapedNome + '\')" >Cargos</button><button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deleteDepartment(\'' + escapedId + '\')">Excluir</button></td>';
         tbody.appendChild(tr);
     });
 }
