@@ -17,87 +17,8 @@
  * @property {string} endereco - Endereço residencial
  */
 
-// Array de funcionários padrão com estrutura completa
-const employeesData = [
-    {
-        id: 1,
-        matricula: "MAT001",
-        nome: "Ana Carolina Silva",
-        cpf: "123.456.789-00",
-        cargo: "Gerente de Projetos",
-        departamento: "Condomínio A",
-        email: "ana.silva@topservice.com",
-        status: "Ativo",
-        admissao: "2020-05-15",
-        telefone: "(11) 98765-4321",
-        endereco: "Rua A, 123"
-    },
-    {
-        id: 2,
-        matricula: "MAT002",
-        nome: "Bruno Santos Oliveira",
-        cpf: "234.567.890-11",
-        cargo: "Coordenador de Limpeza",
-        departamento: "Condomínio A",
-        email: "bruno.santos@topservice.com",
-        status: "Ativo",
-        admissao: "2020-08-20",
-        telefone: "(11) 98765-4322",
-        endereco: "Rua B, 456"
-    },
-    {
-        id: 3,
-        matricula: "MAT003",
-        nome: "Carla Mendes Costa",
-        cpf: "345.678.901-22",
-        cargo: "Assistente Administrativo",
-        departamento: "Condomínio B",
-        email: "carla.mendes@topservice.com",
-        status: "Ativo",
-        admissao: "2021-03-10",
-        telefone: "(11) 98765-4323",
-        endereco: "Rua C, 789"
-    },
-    {
-        id: 4,
-        matricula: "MAT004",
-        nome: "Diego Ferreira Gomes",
-        cpf: "456.789.012-33",
-        cargo: "Gerente de Operações",
-        departamento: "Condomínio B",
-        email: "diego.ferreira@topservice.com",
-        status: "Ativo",
-        admissao: "2019-11-05",
-        telefone: "(11) 98765-4324",
-        endereco: "Rua D, 321"
-    },
-    {
-        id: 5,
-        matricula: "MAT005",
-        nome: "Elisa Rocha Martins",
-        cpf: "567.890.123-44",
-        cargo: "Motorista",
-        departamento: "Transporte",
-        email: "elisa.rocha@topservice.com",
-        status: "Ativo",
-        admissao: "2020-02-15",
-        telefone: "(11) 98765-4325",
-        endereco: "Rua E, 654"
-    },
-    {
-        id: 6,
-        matricula: "MAT006",
-        nome: "Felipe Alves Silva",
-        cpf: "678.901.234-55",
-        cargo: "Técnico de Manutenção",
-        departamento: "Manutenção",
-        email: "felipe.alves@topservice.com",
-        status: "Ativo",
-        admissao: "2021-06-01",
-        telefone: "(11) 98765-4326",
-        endereco: "Rua F, 987"
-    }
-];
+// Array de funcionários VAZIO - dados vêm do Supabase
+const employeesData = [];
 
 // ===== Constantes de Persistência =====
 const EMP_KEY = 'topservice_employees_v1';

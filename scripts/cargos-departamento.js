@@ -53,28 +53,30 @@ function saveCargosDepartamento(list) {
 
 /**
  * Obtém todos os cargos de um departamento específico
- * @param {number} departmentId - ID do departamento (condomínio)
+ * @param {string|number} departmentId - ID do departamento (condomínio)
  * @returns {Array} Array de cargos customizados para este departamento
  */
 function getCargosByDepartment(departmentId) {
     const all = loadCargosDepartamento();
-    return all.filter(cd => cd.departmentId === Number(departmentId));
+    const deptIdStr = String(departmentId);
+    return all.filter(cd => String(cd.departmentId) === deptIdStr);
 }
 
 /**
  * Obtém um cargo customizado de um departamento
- * @param {number} departmentId - ID do departamento
+ * @param {string|number} departmentId - ID do departamento
  * @param {number} cargoId - ID do cargo global
  * @returns {Object|null} Cargo customizado ou null
  */
 function getCargoCustomizado(departmentId, cargoId) {
     const all = loadCargosDepartamento();
-    return all.find(cd => cd.departmentId === Number(departmentId) && cd.cargoId === Number(cargoId)) || null;
+    const deptIdStr = String(departmentId);
+    return all.find(cd => String(cd.departmentId) === deptIdStr && cd.cargoId === Number(cargoId)) || null;
 }
 
 /**
  * Vincula um cargo global a um departamento com horário customizável
- * @param {number} departmentId - ID do departamento
+ * @param {string|number} departmentId - ID do departamento
  * @param {number} cargoId - ID do cargo global
  * @param {string} horaInicio - Hora de início (ex: "08:00")
  * @param {string} horaFim - Hora de fim (ex: "17:00")
@@ -82,6 +84,7 @@ function getCargoCustomizado(departmentId, cargoId) {
  * @returns {Object} Cargo departamento criado
  */
 function adicionarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, intervaloAlmoco) {
+    console.log('[CARGOS-DEPT] Adicionando cargo:', { departmentId, cargoId, horaInicio, horaFim, intervaloAlmoco });
     const all = loadCargosDepartamento();
     
     // Verifica se já existe
@@ -94,7 +97,7 @@ function adicionarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, 
     const cargoGlobal = typeof getCargoById === 'function' ? getCargoById(cargoId) : null;
     
     if (!cargoGlobal) {
-        console.warn('Cargo global não encontrado');
+        console.warn('Cargo global não encontrado:', cargoId);
         return null;
     }
     
@@ -103,7 +106,7 @@ function adicionarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, 
     
     const novo = {
         id,
-        departmentId: Number(departmentId),
+        departmentId: departmentId, // Mantém como string ou número
         cargoId: Number(cargoId),
         cargoNome: cargoGlobal.nome,
         horaInicio: horaInicio || '08:00',
@@ -116,6 +119,7 @@ function adicionarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, 
     
     all.push(novo);
     saveCargosDepartamento(all);
+    console.log('[CARGOS-DEPT] Cargo adicionado com sucesso:', novo);
     return novo;
 }
 
@@ -124,7 +128,8 @@ function adicionarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, 
  */
 function atualizarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, intervaloAlmoco) {
     const all = loadCargosDepartamento();
-    const index = all.findIndex(cd => cd.departmentId === Number(departmentId) && cd.cargoId === Number(cargoId));
+    const deptIdStr = String(departmentId);
+    const index = all.findIndex(cd => String(cd.departmentId) === deptIdStr && cd.cargoId === Number(cargoId));
     
     if (index === -1) return null;
     
@@ -149,7 +154,8 @@ function atualizarCargoDepartamento(departmentId, cargoId, horaInicio, horaFim, 
 function removerCargoDepartamento(departmentId, cargoId) {
     if (!confirm('Confirma remoção deste cargo do departamento?')) return false;
     
-    const all = loadCargosDepartamento().filter(cd => !(cd.departmentId === Number(departmentId) && cd.cargoId === Number(cargoId)));
+    const deptIdStr = String(departmentId);
+    const all = loadCargosDepartamento().filter(cd => !(String(cd.departmentId) === deptIdStr && cd.cargoId === Number(cargoId)));
     saveCargosDepartamento(all);
     return true;
 }
