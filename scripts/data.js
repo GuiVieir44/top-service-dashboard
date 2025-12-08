@@ -250,8 +250,15 @@ function addEmployee(employee) {
     employees.push(newEmployee);
     console.log('📊 Total funcionários antes de salvar:', employees.length);
     
-    // Usar debounce aqui
+    // Salvar localmente
     saveEmployees();
+    
+    // Sincronizar com Supabase Realtime
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando funcionário para Supabase Realtime...');
+        window.supabaseRealtime.insert('employees', newEmployee);
+    }
+    
     console.log('✅ addEmployee() CONCLUÍDO com sucesso');
     return newEmployee;
 }
@@ -280,6 +287,13 @@ function updateEmployee(id, updatedData) {
     
     employees[index] = updated;
     saveEmployees();
+    
+    // Sincronizar com Supabase Realtime
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        console.log('☁️ Atualizando funcionário no Supabase Realtime...');
+        window.supabaseRealtime.update('employees', id, updated);
+    }
+    
     return updated;
 }
 
@@ -301,10 +315,10 @@ function deleteEmployee(id) {
     employees.splice(index, 1);
     saveEmployees();
     
-    // Forçar sincronização com Supabase para deletar lá também
-    if (window.supabaseSync && window.supabaseSync.syncAllData) {
-        console.log('🗑️ Sincronizando deleção de funcionário com Supabase...');
-        window.supabaseSync.syncAllData();
+    // Sincronizar com Supabase Realtime
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        console.log('🗑️ Removendo funcionário do Supabase Realtime...');
+        window.supabaseRealtime.remove('employees', id);
     }
     
     return true;

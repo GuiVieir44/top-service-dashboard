@@ -63,6 +63,12 @@ function addDepartment(name, description) {
     list.push(d);
     saveDepartments(list);
     
+    // Sincronizar com Supabase Realtime
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando departamento para Supabase Realtime...');
+        window.supabaseRealtime.insert('departamentos', d);
+    }
+    
     // Validação: verificar se foi salvo corretamente
     setTimeout(function() {
         var savedList = loadDepartments();
@@ -100,10 +106,10 @@ function deleteDepartment(id) {
     saveDepartments(list);
     renderDepartments();
     
-    // Forçar sincronização com Supabase para deletar lá também
-    if (window.supabaseSync && window.supabaseSync.syncAllData) {
-        console.log('🗑️ Sincronizando deleção com Supabase...');
-        window.supabaseSync.syncAllData();
+    // Sincronizar com Supabase Realtime
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        console.log('🗑️ Removendo departamento do Supabase Realtime...');
+        window.supabaseRealtime.remove('departamentos', id);
     }
 }
 
