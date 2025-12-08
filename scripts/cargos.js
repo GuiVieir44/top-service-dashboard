@@ -79,6 +79,13 @@ function addCargo(nome, horasDia) {
     
     cargos.push(cargo);
     saveCargos();
+    
+    // Sincronizar com Supabase
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando cargo para Supabase...');
+        window.supabaseRealtime.insert('cargos', cargo);
+    }
+    
     return cargo;
 }
 
@@ -98,6 +105,13 @@ function updateCargo(id, nome, horasDia) {
     }
     cargos[index] = { ...cargos[index], nome, horasDia: Number(horasDia), bancoHoras: Number(bancoHoras) };
     saveCargos();
+    
+    // Sincronizar com Supabase
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        console.log('☁️ Atualizando cargo no Supabase...');
+        window.supabaseRealtime.update('cargos', id, cargos[index]);
+    }
+    
     return cargos[index];
 }
 
@@ -110,6 +124,13 @@ function deleteCargo(id) {
     
     cargos.splice(index, 1);
     saveCargos();
+    
+    // Sincronizar com Supabase
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        console.log('🗑️ Removendo cargo do Supabase...');
+        window.supabaseRealtime.remove('cargos', id);
+    }
+    
     return true;
 }
 
