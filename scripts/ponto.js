@@ -170,7 +170,9 @@ function registerPunch(employeeId, type, rf = null) {
 
 function deletePunch(id) {
     if (!confirm('Confirma exclusão deste registro de ponto?')) return;
-    var punches = loadPunches().filter(function(p){ return p.id !== id; });
+    // Converter para string para comparação consistente
+    var idStr = String(id);
+    var punches = loadPunches().filter(function(p){ return String(p.id) !== idStr; });
     savePunches(punches);
     
     // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
@@ -183,6 +185,123 @@ function deletePunch(id) {
     setTimeout(() => savePunches(punches), 100);
     renderPunches();
 }
+
+// NOVA FUNÇÃO: Atualizar registro de ponto
+function updatePunch(id, newType, newTimestamp) {
+    var punches = loadPunches();
+    var idStr = String(id);
+    var index = punches.findIndex(function(p) { return String(p.id) === idStr; });
+    
+    if (index === -1) {
+        console.warn('[PUNCH] Registro não encontrado para edição:', id);
+        return null;
+    }
+    
+    // Atualizar dados
+    punches[index].type = newType;
+    punches[index].timestamp = newTimestamp;
+    
+    savePunches(punches);
+    renderPunches();
+    
+    // ☁️ SINCRONIZAR COM SUPABASE
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        console.log('☁️ Atualizando ponto no Supabase...');
+        window.supabaseRealtime.update('punches', id, punches[index]);
+    }
+    
+    console.log('[PUNCH] ✅ Registro atualizado:', punches[index]);
+    return punches[index];
+}
+
+// NOVA FUNÇÃO: Abrir modal de edição de ponto
+function openEditPunchModal(id) {
+    var punches = loadPunches();
+    var idStr = String(id);
+    var punch = punches.find(function(p) { return String(p.id) === idStr; });
+    
+    if (!punch) {
+        showToast('Registro não encontrado', 'error');
+        return;
+    }
+    
+    // Formatar data/hora para o input datetime-local
+    var dt = new Date(punch.timestamp);
+    var localDateTime = dt.getFullYear() + '-' + 
+        String(dt.getMonth() + 1).padStart(2, '0') + '-' + 
+        String(dt.getDate()).padStart(2, '0') + 'T' + 
+        String(dt.getHours()).padStart(2, '0') + ':' + 
+        String(dt.getMinutes()).padStart(2, '0');
+    
+    var modalHTML = `
+        <div class="modal-overlay" onclick="this.remove()" id="modal-edit-punch">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>Editar Registro de Ponto</h2>
+                    <button class="modal-close-btn" onclick="document.getElementById('modal-edit-punch').remove()">×</button>
+                </div>
+                
+                <div class="modal-section" style="padding: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tipo:</label>
+                        <select id="edit-punch-type" 
+                                style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="Entrada" ${punch.type === 'Entrada' ? 'selected' : ''}>Entrada</option>
+                            <option value="Saída" ${punch.type === 'Saída' ? 'selected' : ''}>Saída</option>
+                            <option value="Folga" ${punch.type === 'Folga' ? 'selected' : ''}>Folga</option>
+                            <option value="Falta" ${punch.type === 'Falta' ? 'selected' : ''}>Falta</option>
+                            <option value="Feriado" ${punch.type === 'Feriado' ? 'selected' : ''}>Feriado</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Data/Hora:</label>
+                        <input type="datetime-local" id="edit-punch-datetime" value="${localDateTime}"
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="document.getElementById('modal-edit-punch').remove()" 
+                                style="padding: 10px 20px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 6px; cursor: pointer;">
+                            Cancelar
+                        </button>
+                        <button onclick="saveEditPunch('${id}')" 
+                                style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// NOVA FUNÇÃO: Salvar edição de ponto
+function saveEditPunch(id) {
+    var newType = document.getElementById('edit-punch-type').value;
+    var newDatetime = document.getElementById('edit-punch-datetime').value;
+    
+    if (!newType || !newDatetime) {
+        showToast('Preencha todos os campos', 'warning');
+        return;
+    }
+    
+    // Converter para ISO
+    var newTimestamp = new Date(newDatetime).toISOString();
+    
+    var updated = updatePunch(id, newType, newTimestamp);
+    if (updated) {
+        showToast('Registro atualizado!', 'success');
+        document.getElementById('modal-edit-punch').remove();
+    } else {
+        showToast('Erro ao atualizar registro', 'error');
+    }
+}
+
+// Expor funções globalmente
+window.updatePunch = updatePunch;
+window.openEditPunchModal = openEditPunchModal;
+window.saveEditPunch = saveEditPunch;
 
 function formatDateTimeISO(iso) {
     try {
@@ -241,7 +360,9 @@ function renderPunches() {
                        '<td style="padding:8px;border:1px solid #e6e6e6;">' + p.type + '</td>' +
                        '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;">' + statusHtml + '</td>' +
                        '<td style="padding:8px;border:1px solid #e6e6e6;">' + formatDateTimeISO(p.timestamp) + '</td>' +
-                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;"><button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deletePunch(' + p.id + ')">Excluir</button></td>';
+                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;">' +
+                       '<button style="background:#f39c12;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;" onclick="openEditPunchModal(\'' + p.id + '\')">Editar</button>' +
+                       '<button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deletePunch(\'' + p.id + '\')">Excluir</button></td>';
         tbody.appendChild(tr);
     });
 }

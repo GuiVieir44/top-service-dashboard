@@ -94,7 +94,9 @@ function addAfastamento(data) {
 
 function deleteAfastamento(id) {
     if (!confirm('Confirma remoção deste afastamento?')) return;
-    var list = loadAfastamentos().filter(function(a){ return a.id !== id; });
+    // Converter para string para comparação consistente
+    var idStr = String(id);
+    var list = loadAfastamentos().filter(function(a){ return String(a.id) !== idStr; });
     saveAfastamentos(list);
     
     // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
@@ -107,6 +109,136 @@ function deleteAfastamento(id) {
     setTimeout(() => saveAfastamentos(list), 100);
     renderAfastamentos();
 }
+
+// NOVA FUNÇÃO: Atualizar afastamento
+function updateAfastamento(id, newData) {
+    var list = loadAfastamentos();
+    var idStr = String(id);
+    var index = list.findIndex(function(a) { return String(a.id) === idStr; });
+    
+    if (index === -1) {
+        console.warn('[AFAST] Afastamento não encontrado para edição:', id);
+        return null;
+    }
+    
+    // Atualizar dados mantendo o ID
+    list[index] = { ...list[index], ...newData, id: list[index].id };
+    
+    saveAfastamentos(list);
+    renderAfastamentos();
+    
+    // ☁️ SINCRONIZAR COM SUPABASE
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        console.log('☁️ Atualizando afastamento no Supabase...');
+        window.supabaseRealtime.update('afastamentos', id, list[index]);
+    }
+    
+    console.log('[AFAST] ✅ Afastamento atualizado:', list[index]);
+    return list[index];
+}
+
+// NOVA FUNÇÃO: Abrir modal de edição de afastamento
+function openEditAfastamentoModal(id) {
+    var list = loadAfastamentos();
+    var idStr = String(id);
+    var afast = list.find(function(a) { return String(a.id) === idStr; });
+    
+    if (!afast) {
+        showToast('Afastamento não encontrado', 'error');
+        return;
+    }
+    
+    // Obter lista de funcionários para o select
+    var empOptions = '';
+    if (typeof getEmployees === 'function') {
+        var emps = getEmployees();
+        emps.forEach(function(e) {
+            var selected = (e.id == afast.employeeId) ? 'selected' : '';
+            empOptions += '<option value="' + e.id + '" ' + selected + '>' + e.matricula + ' - ' + e.nome + '</option>';
+        });
+    }
+    
+    var modalHTML = `
+        <div class="modal-overlay" onclick="this.remove()" id="modal-edit-afast">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>Editar Afastamento</h2>
+                    <button class="modal-close-btn" onclick="document.getElementById('modal-edit-afast').remove()">×</button>
+                </div>
+                
+                <div class="modal-section" style="padding: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Funcionário:</label>
+                        <select id="edit-afast-emp" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            ${empOptions}
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Tipo:</label>
+                        <select id="edit-afast-type" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                            <option value="Férias" ${afast.type === 'Férias' ? 'selected' : ''}>Férias</option>
+                            <option value="Licença Médica" ${afast.type === 'Licença Médica' ? 'selected' : ''}>Licença Médica</option>
+                            <option value="Licença Maternidade" ${afast.type === 'Licença Maternidade' ? 'selected' : ''}>Licença Maternidade</option>
+                            <option value="Licença Paternidade" ${afast.type === 'Licença Paternidade' ? 'selected' : ''}>Licença Paternidade</option>
+                            <option value="Afastamento INSS" ${afast.type === 'Afastamento INSS' ? 'selected' : ''}>Afastamento INSS</option>
+                            <option value="Outro" ${afast.type === 'Outro' ? 'selected' : ''}>Outro</option>
+                        </select>
+                    </div>
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Data Início:</label>
+                        <input type="date" id="edit-afast-start" value="${afast.start || ''}"
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Data Fim:</label>
+                        <input type="date" id="edit-afast-end" value="${afast.end || ''}"
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="document.getElementById('modal-edit-afast').remove()" 
+                                style="padding: 10px 20px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 6px; cursor: pointer;">
+                            Cancelar
+                        </button>
+                        <button onclick="saveEditAfastamento('${id}')" 
+                                style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// NOVA FUNÇÃO: Salvar edição de afastamento
+function saveEditAfastamento(id) {
+    var newData = {
+        employeeId: document.getElementById('edit-afast-emp').value,
+        type: document.getElementById('edit-afast-type').value,
+        start: document.getElementById('edit-afast-start').value,
+        end: document.getElementById('edit-afast-end').value
+    };
+    
+    if (!newData.employeeId || !newData.type || !newData.start || !newData.end) {
+        showToast('Preencha todos os campos', 'warning');
+        return;
+    }
+    
+    var updated = updateAfastamento(id, newData);
+    if (updated) {
+        showToast('Afastamento atualizado!', 'success');
+        document.getElementById('modal-edit-afast').remove();
+    } else {
+        showToast('Erro ao atualizar afastamento', 'error');
+    }
+}
+
+// Expor funções globalmente
+window.updateAfastamento = updateAfastamento;
+window.openEditAfastamentoModal = openEditAfastamentoModal;
+window.saveEditAfastamento = saveEditAfastamento;
 
 function renderAfastamentos() {
     var tbody = document.getElementById('afast-list-body');
@@ -131,7 +263,9 @@ function renderAfastamentos() {
                        '<td style="padding:8px;border:1px solid #e6e6e6;">' + a.type + '</td>' +
                        '<td style="padding:8px;border:1px solid #e6e6e6;">' + a.start + '</td>' +
                        '<td style="padding:8px;border:1px solid #e6e6e6;">' + a.end + '</td>' +
-                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;"><button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deleteAfastamento(' + a.id + ')">Excluir</button></td>';
+                       '<td style="padding:8px;border:1px solid #e6e6e6;text-align:center;">' +
+                       '<button style="background:#f39c12;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;" onclick="openEditAfastamentoModal(\'' + a.id + '\')">Editar</button>' +
+                       '<button style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;" onclick="deleteAfastamento(\'' + a.id + '\')">Excluir</button></td>';
         tbody.appendChild(tr);
     });
 }

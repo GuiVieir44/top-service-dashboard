@@ -113,6 +113,99 @@ function deleteDepartment(id) {
     }
 }
 
+// NOVA FUNÇÃO: Atualizar departamento
+function updateDepartment(id, newName, newDescription) {
+    var list = loadDepartments();
+    var idStr = String(id);
+    var index = list.findIndex(function(d) { return String(d.id) === idStr; });
+    
+    if (index === -1) {
+        console.warn('[DEPT] Departamento não encontrado para edição:', id);
+        return null;
+    }
+    
+    // Atualizar dados
+    list[index].nome = newName;
+    list[index].name = newName;
+    list[index].description = newDescription || '';
+    
+    saveDepartments(list);
+    renderDepartments();
+    
+    // ☁️ SINCRONIZAR COM SUPABASE
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        console.log('☁️ Atualizando departamento no Supabase...');
+        window.supabaseRealtime.update('departamentos', id, list[index]);
+    }
+    
+    console.log('[DEPT] ✅ Departamento atualizado:', list[index]);
+    return list[index];
+}
+
+// NOVA FUNÇÃO: Abrir modal de edição de departamento
+function openEditDepartmentModal(id) {
+    var dept = getDepartmentById(id);
+    if (!dept) {
+        showToast('Departamento não encontrado', 'error');
+        return;
+    }
+    
+    var modalHTML = `
+        <div class="modal-overlay" onclick="this.remove()" id="modal-edit-dept">
+            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
+                <div class="modal-header">
+                    <h2>Editar Departamento</h2>
+                    <button class="modal-close-btn" onclick="document.getElementById('modal-edit-dept').remove()">×</button>
+                </div>
+                
+                <div class="modal-section" style="padding: 20px;">
+                    <div style="margin-bottom: 15px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nome:</label>
+                        <input type="text" id="edit-dept-name" value="${dept.nome || ''}" 
+                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
+                    </div>
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Descrição:</label>
+                        <textarea id="edit-dept-desc" rows="3"
+                                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical;">${dept.description || ''}</textarea>
+                    </div>
+                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
+                        <button onclick="document.getElementById('modal-edit-dept').remove()" 
+                                style="padding: 10px 20px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 6px; cursor: pointer;">
+                            Cancelar
+                        </button>
+                        <button onclick="saveEditDepartment('${id}')" 
+                                style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
+                            Salvar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// NOVA FUNÇÃO: Salvar edição de departamento
+function saveEditDepartment(id) {
+    var newName = document.getElementById('edit-dept-name').value.trim();
+    var newDesc = document.getElementById('edit-dept-desc').value.trim();
+    
+    if (!newName) {
+        showToast('Nome é obrigatório', 'warning');
+        return;
+    }
+    
+    var updated = updateDepartment(id, newName, newDesc);
+    if (updated) {
+        showToast('Departamento atualizado!', 'success');
+        document.getElementById('modal-edit-dept').remove();
+    } else {
+        showToast('Erro ao atualizar departamento', 'error');
+    }
+}
+
 function renderDepartments() {
     console.log('[DEPT] renderDepartments() chamado');
     var tbody = document.getElementById('dept-list-body');
@@ -158,6 +251,19 @@ function renderDepartments() {
             };
         })(d.id, d.nome || '');
         
+        // Botão Editar - usando closure para capturar valor
+        var btnEditar = document.createElement('button');
+        btnEditar.style.cssText = 'background:#f39c12;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;';
+        btnEditar.textContent = 'Editar';
+        (function(deptId) {
+            btnEditar.onclick = function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('[DEPT] Clicou em Editar:', deptId);
+                openEditDepartmentModal(deptId);
+            };
+        })(d.id);
+        
         // Botão Excluir - usando closure para capturar valor
         var btnExcluir = document.createElement('button');
         btnExcluir.style.cssText = 'background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;';
@@ -172,6 +278,7 @@ function renderDepartments() {
         })(d.id);
         
         tdAcoes.appendChild(btnCargos);
+        tdAcoes.appendChild(btnEditar);
         tdAcoes.appendChild(btnExcluir);
         
         tr.appendChild(tdNome);
@@ -186,6 +293,9 @@ function renderDepartments() {
 window.renderDepartments = renderDepartments;
 window.deleteDepartment = deleteDepartment;
 window.addDepartment = addDepartment;
+window.updateDepartment = updateDepartment;
+window.openEditDepartmentModal = openEditDepartmentModal;
+window.saveEditDepartment = saveEditDepartment;
 window.abrirCargosDepartamentoModal = abrirCargosDepartamentoModal;
 
 function abrirCargosDepartamentoModal(deptId, deptName) {
