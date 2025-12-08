@@ -28,10 +28,11 @@ function loadDepartments() {
 
 function saveDepartments(list) {
     try { 
-        // Garantir que todos os departamentos tenham o campo 'nome' padronizado
+        // Garantir que todos os departamentos tenham AMBOS os campos 'nome' e 'name'
         const normalizedList = list.map(d => ({
             id: d.id,
             nome: d.nome || d.name || '',
+            name: d.nome || d.name || '',  // Duplicar para compatibilidade com Supabase
             description: d.description || ''
         }));
         
@@ -56,14 +57,16 @@ function saveDepartments(list) {
 function addDepartment(name, description) {
     var list = loadDepartments();
     var id = list.length > 0 ? Math.max.apply(null, list.map(function(d){return d.id;})) + 1 : 1;
-    var d = { id: id, nome: name, description: description || '' };
+    // Usar string ID para compatibilidade com Supabase
+    var stringId = 'dept_' + Date.now() + '_' + id;
+    var d = { id: stringId, nome: name, name: name, description: description || '' };
     list.push(d);
     saveDepartments(list);
     
     // Validação: verificar se foi salvo corretamente
     setTimeout(function() {
         var savedList = loadDepartments();
-        if (savedList.length === list.length && savedList.some(dept => dept.id === d.id && dept.nome === name)) {
+        if (savedList.length === list.length && savedList.some(dept => dept.id === d.id && (dept.nome === name || dept.name === name))) {
             console.log('%c[DEPT] ✅ Departamento adicionado e verificado:', 'color: #27ae60;', d);
         } else {
             console.error('%c[DEPT] ❌ Falha na verificação de salvamento do departamento', 'color: #e74c3c;');
