@@ -81,11 +81,23 @@ function renderEmployeeList(searchTerm) {
         // Define a cor do badge de status
         const statusColor = getStatusColor(employee.status);
         
+        // Buscar nome do departamento (se for ID, buscar o nome)
+        let deptNome = employee.departamento || '-';
+        if (deptNome && deptNome.startsWith('dept_')) {
+            // É um ID, buscar o nome real
+            if (typeof getDepartmentById === 'function') {
+                const dept = getDepartmentById(deptNome);
+                if (dept) {
+                    deptNome = dept.nome || dept.name || deptNome;
+                }
+            }
+        }
+        
         row.innerHTML = `
             <td><strong>${employee.matricula}</strong></td>
             <td>${employee.nome}</td>
             <td>${employee.cargo}</td>
-            <td>${employee.departamento}</td>
+            <td>${deptNome}</td>
             <td>${employee.adicional || '-'}</td>
             <td>${employee.valeAlimentacao ? 'R$ ' + parseFloat(employee.valeAlimentacao).toFixed(2).replace('.', ',') : '-'}</td>
             <td>${employee.valeTransporte || '-'}</td>
