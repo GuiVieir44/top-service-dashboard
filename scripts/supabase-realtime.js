@@ -276,33 +276,47 @@
 
     // ===== DOWNLOAD DE DADOS DO SUPABASE (COM MERGE) =====
     async function downloadAndMerge() {
-        console.log('📥 Baixando dados do Supabase (com merge)...');
+        console.log('📥 Baixando dados do Supabase...');
         
         for (const [table, config] of Object.entries(TABLES)) {
             try {
+                console.log(`   📥 Baixando ${table}...`);
                 const remoteData = await apiRequest('GET', table);
                 
                 if (remoteData === null) {
-                    console.log(`⚠️ ${table}: falha ao baixar, mantendo dados locais`);
+                    console.log(`   ⚠️ ${table}: falha ao baixar`);
                     continue;
                 }
+                
+                console.log(`   📦 ${table}: ${remoteData.length} registros do servidor`);
                 
                 const normalized = normalizeFromSupabase(table, remoteData);
                 const localData = getLocalData(table);
                 
-                // MERGE: Juntar dados locais + remotos (sem perder nada)
-                const merged = mergeData(localData, normalized);
+                // Se o servidor tem dados e o local está vazio, usar dados do servidor
+                let finalData;
+                if (remoteData.length > 0 && localData.length === 0) {
+                    finalData = normalized;
+                    console.log(`   ✅ ${table}: usando ${normalized.length} registros do servidor`);
+                } else {
+                    // MERGE: Juntar dados locais + remotos
+                    finalData = mergeData(localData, normalized);
+                    console.log(`   ✅ ${table}: merge = ${finalData.length} (local: ${localData.length}, remoto: ${normalized.length})`);
+                }
                 
-                setLocalData(table, merged);
-                console.log(`✅ ${table}: ${merged.length} registros (local: ${localData.length}, remoto: ${normalized.length})`);
+                // Salvar no localStorage
+                setLocalData(table, finalData);
+                
+                // Verificar se salvou
+                const verification = getLocalData(table);
+                console.log(`   💾 ${table}: verificação = ${verification.length} registros salvos`);
+                
             } catch (error) {
-                console.error(`❌ Erro ao baixar ${table}:`, error);
+                console.error(`   ❌ Erro ao baixar ${table}:`, error);
             }
         }
         
-        // Atualizar UI
-        updateAllUI();
-        console.log('✅ Download e merge concluídos!');
+        console.log('✅ Download concluído!');
     }
 
     // ===== DOWNLOAD FORÇADO (SUBSTITUI LOCAL) =====
@@ -663,49 +677,58 @@
 
     // ===== INICIALIZAÇÃO =====
     async function init() {
-        console.log('🚀 Iniciando Supabase Realtime v2...');
+        console.log('%c🚀 Supabase Realtime v2.1 - Iniciando...', 'color: #3498db; font-size: 16px; font-weight: bold;');
         
-        // PASSO 1: Carregar dados do localStorage PRIMEIRO (não perder nada)
-        console.log('📂 Carregando dados locais...');
+        // PASSO 1: Carregar dados do localStorage PRIMEIRO
+        console.log('📂 PASSO 1: Carregando dados locais...');
         for (const [table, config] of Object.entries(TABLES)) {
             const local = getLocalData(table);
             window[table] = local;
-            console.log(`📂 ${table}: ${local.length} registros locais`);
+            console.log(`   📂 ${table}: ${local.length} registros locais`);
         }
         
-        // Renderizar UI com dados locais imediatamente (sem esperar Supabase)
-        setTimeout(() => updateAllUI(), 100);
-        
         // PASSO 2: Verificar conexão com Supabase
+        console.log('🔌 PASSO 2: Verificando conexão com Supabase...');
         showSyncStatus('Conectando ao servidor...', 'info');
         const connected = await checkConnection();
+        console.log(`   🔌 Conexão: ${connected ? 'OK ✅' : 'FALHOU ❌'}`);
         
         if (connected) {
-            console.log('✅ Conectado ao Supabase');
-            
-            // PASSO 3: Upload dados locais para Supabase PRIMEIRO
-            await uploadLocalData();
-            
-            // PASSO 4: Download e merge (não substitui, adiciona/atualiza)
+            // PASSO 3: Download dados do Supabase (PRIORIDADE!)
+            console.log('📥 PASSO 3: Baixando dados do Supabase...');
             await downloadAndMerge();
             
+            // PASSO 4: Upload dados locais que não existem no servidor
+            console.log('📤 PASSO 4: Enviando dados locais pendentes...');
+            await uploadLocalData();
+            
             // PASSO 5: Conectar WebSocket para atualizações em tempo real
+            console.log('📡 PASSO 5: Conectando WebSocket...');
             connectRealtime();
             
-            showSyncStatus('Sincronizado! Atualizações automáticas ativas.', 'success');
-            console.log('✅ Supabase Realtime v2 ativo!');
+            // PASSO 6: Atualizar UI
+            console.log('🎨 PASSO 6: Atualizando interface...');
+            updateAllUI();
+            
+            showSyncStatus('Sincronizado! Dados carregados.', 'success');
+            console.log('%c✅ Supabase Realtime v2.1 ATIVO!', 'color: #27ae60; font-size: 14px; font-weight: bold;');
         } else {
             showSyncStatus('Offline - usando dados locais', 'error');
-            console.log('⚠️ Sem conexão com Supabase. Usando dados locais.');
+            console.log('⚠️ Sem conexão com Supabase. Usando apenas dados locais.');
+            updateAllUI();
             
             // Tentar reconectar a cada 15 segundos
             setInterval(async () => {
                 if (!isConnected && !syncInProgress) {
+                    console.log('🔄 Tentando reconectar...');
                     const reconnected = await checkConnection();
                     if (reconnected) {
                         showSyncStatus('Reconectado! Sincronizando...', 'info');
-                        await syncAll();
+                        await downloadAndMerge();
+                        await uploadLocalData();
                         connectRealtime();
+                        updateAllUI();
+                        showSyncStatus('Reconectado!', 'success');
                     }
                 }
             }, 15000);
