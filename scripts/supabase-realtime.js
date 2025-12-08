@@ -478,16 +478,38 @@
         setTimeout(() => toast.remove(), type === 'success' ? 5000 : 3000);
     }
 
-    // ===== LIMPAR CACHE LOCAL =====
-    function clearLocalCache() {
-        console.log('🧹 Limpando cache local antes de sincronizar...');
+    // ===== GERAR UUID =====
+    function generateUUID() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    // ===== UPLOAD DADOS LOCAIS PENDENTES =====
+    async function uploadLocalData() {
+        console.log('📤 Enviando dados locais para o Supabase...');
         
         for (const [table, config] of Object.entries(TABLES)) {
-            localStorage.removeItem(config.localStorage);
-            window[table] = [];
+            const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
+            
+            if (local.length === 0) continue;
+            
+            console.log(`📤 Enviando ${local.length} registros de ${table}...`);
+            
+            for (const item of local) {
+                // Se o ID é numérico, converter para UUID
+                if (typeof item.id === 'number' || (typeof item.id === 'string' && !item.id.includes('-'))) {
+                    item.id = generateUUID();
+                }
+                
+                const normalized = normalizeToSupabase(table, item);
+                await apiRequest('POST', table, normalized);
+            }
         }
         
-        console.log('✅ Cache local limpo!');
+        console.log('✅ Dados locais enviados!');
     }
 
     // ===== INICIALIZAÇÃO =====
@@ -497,14 +519,14 @@
         // Mostrar status na tela
         showSyncStatus('Sincronizando com servidor...', 'info');
         
-        // PASSO 1: Limpar cache local para garantir dados frescos
-        clearLocalCache();
-        
-        // PASSO 2: Verificar conexão
+        // PASSO 1: Verificar conexão
         const connected = await checkConnection();
         
         if (connected) {
-            // PASSO 3: Baixar dados frescos do Supabase
+            // PASSO 2: Enviar dados locais pendentes para o Supabase (ANTES de limpar)
+            await uploadLocalData();
+            
+            // PASSO 3: Baixar dados frescos do Supabase (isso substitui o localStorage)
             await loadInitialData();
             
             // PASSO 4: Conectar ao Realtime para atualizações automáticas
@@ -517,13 +539,20 @@
             showSyncStatus('Sem conexão. Usando dados locais.', 'error');
             console.log('⚠️ Sem conexão com Supabase.');
             
+            // Carregar dados do localStorage se existirem
+            for (const [table, config] of Object.entries(TABLES)) {
+                const local = JSON.parse(localStorage.getItem(config.localStorage) || '[]');
+                window[table] = local;
+            }
+            updateAllUI();
+            
             // Tentar reconectar a cada 10 segundos
             setInterval(async () => {
                 if (!isConnected) {
                     showSyncStatus('Tentando reconectar...', 'info');
                     const reconnected = await checkConnection();
                     if (reconnected) {
-                        clearLocalCache();
+                        await uploadLocalData();
                         await loadInitialData();
                         connectRealtime();
                         showSyncStatus('Reconectado! Dados atualizados.', 'success');

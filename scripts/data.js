@@ -4,7 +4,7 @@
 
 /**
  * @typedef {Object} Employee
- * @property {number} id - ID único do funcionário
+ * @property {string} id - UUID único do funcionário
  * @property {string} matricula - Matrícula (ex: MAT001)
  * @property {string} nome - Nome completo
  * @property {string} cpf - CPF formatado
@@ -23,6 +23,15 @@ const employeesData = [];
 // ===== Constantes de Persistência =====
 const EMP_KEY = 'topservice_employees_v1';
 const VALID_STATUSES = ['Ativo', 'Desligado', 'Férias', 'Afastado'];
+
+// ===== GERAR UUID =====
+function generateUUID() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        const r = Math.random() * 16 | 0;
+        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+}
 
 // ===== DEBOUNCING =====
 let saveEmployeesTimeout = null;
@@ -160,7 +169,8 @@ function addEmployee(employee) {
         return null;
     }
     
-    const newId = employees.length > 0 ? Math.max(...employees.map(e => e.id)) + 1 : 1;
+    // Usar UUID em vez de ID numérico
+    const newId = generateUUID();
     
     const newEmployee = {
         id: newId,
@@ -168,7 +178,7 @@ function addEmployee(employee) {
         status: employee.status || 'Ativo'
     };
     
-    console.log('📌 Novo funcionário criado com ID:', newId);
+    console.log('📌 Novo funcionário criado com UUID:', newId);
     employees.push(newEmployee);
     console.log('📊 Total funcionários antes de salvar:', employees.length);
     
@@ -187,12 +197,14 @@ function addEmployee(employee) {
 
 /**
  * Atualiza dados de um funcionário existente com validação
- * @param {number} id - ID do funcionário
+ * @param {string} id - ID (UUID) do funcionário
  * @param {Object} updatedData - Novos dados (apenas campos a atualizar)
  * @returns {Employee|null} Funcionário atualizado ou null se falhar
  */
 function updateEmployee(id, updatedData) {
-    const index = employees.findIndex(emp => emp.id === id);
+    // Converter para string para comparação consistente
+    const idStr = String(id);
+    const index = employees.findIndex(emp => String(emp.id) === idStr);
     
     if (index === -1) {
         console.warn(`Funcionário com ID ${id} não encontrado`);
