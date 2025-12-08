@@ -231,12 +231,39 @@
                                     <li>✅ Relatórios Avançados</li>
                                 </ul>
                             </div>
+                            
+                            <!-- Botão de Sincronização -->
+                            <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #eee;">
+                                <h4>🔄 Sincronização</h4>
+                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">Use este botão se os dados não estiverem atualizados:</p>
+                                <button onclick="limparCacheESincronizar()" style="background: #e74c3c; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-size: 1rem; width: 100%;">
+                                    🗑️ Limpar Cache e Sincronizar
+                                </button>
+                                <p style="font-size: 0.8rem; color: #999; margin-top: 8px;">Isso vai buscar os dados mais recentes do servidor.</p>
+                            </div>
                         </div>
                     </div>
                 </section>
             </div>
         </main>
     </div>
+    
+    <!-- Função de limpar cache -->
+    <script>
+        function limparCacheESincronizar() {
+            if (confirm('Isso vai limpar o cache local e buscar dados do servidor. Continuar?')) {
+                // Limpar localStorage
+                localStorage.clear();
+                
+                // Mostrar mensagem
+                alert('Cache limpo! A página será recarregada.');
+                
+                // Recarregar
+                location.reload();
+            }
+        }
+    </script>
+    
     <script src="scripts/debug.js"></script>
     <script src="scripts/toast.js"></script>
     <script src="scripts/supabase-realtime.js"></script>
