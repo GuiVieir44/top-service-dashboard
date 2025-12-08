@@ -289,7 +289,9 @@ function updateEmployee(id, updatedData) {
  * @returns {boolean} true se removido, false se não encontrado
  */
 function deleteEmployee(id) {
-    const index = employees.findIndex(emp => emp.id === id);
+    // Converter para string para comparação consistente
+    const idStr = String(id);
+    const index = employees.findIndex(emp => String(emp.id) === idStr);
     
     if (index === -1) {
         console.warn(`Funcionário com ID ${id} não encontrado`);
@@ -298,6 +300,13 @@ function deleteEmployee(id) {
     
     employees.splice(index, 1);
     saveEmployees();
+    
+    // Forçar sincronização com Supabase para deletar lá também
+    if (window.supabaseSync && window.supabaseSync.syncAllData) {
+        console.log('🗑️ Sincronizando deleção de funcionário com Supabase...');
+        window.supabaseSync.syncAllData();
+    }
+    
     return true;
 }
 

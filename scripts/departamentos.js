@@ -90,11 +90,21 @@ function getDepartmentByName(name) {
 
 function deleteDepartment(id) {
     if (!confirm('Confirma exclusão deste departamento?')) return;
-    var list = loadDepartments().filter(function(d){ return d.id !== id; });
+    
+    // Converter para string para comparação consistente
+    var idStr = String(id);
+    var list = loadDepartments().filter(function(d){ 
+        return String(d.id) !== idStr; 
+    });
+    
     saveDepartments(list);
-    // Garantir persistência
-    setTimeout(() => saveDepartments(list), 100);
     renderDepartments();
+    
+    // Forçar sincronização com Supabase para deletar lá também
+    if (window.supabaseSync && window.supabaseSync.syncAllData) {
+        console.log('🗑️ Sincronizando deleção com Supabase...');
+        window.supabaseSync.syncAllData();
+    }
 }
 
 function renderDepartments() {
