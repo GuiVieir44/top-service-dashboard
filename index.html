@@ -85,7 +85,143 @@
         <!-- CONTEÚDO PRINCIPAL -->
         <main class="main-content">
             <div id="dashboard-content" class="page active">
-                <!-- SCRIPT DE EMERGÊNCIA REMOVIDO A PEDIDO -->
+                <!-- HEADER -->
+                <header class="header">
+                    <div class="header-title">
+                        <h1>Dashboard Principal</h1>
+                        <p>Visão geral do sistema Top Service</p>
+                    </div>
+                    
+                    <div class="user-area">
+                        <div class="user-info" id="user-profile-btn" style="cursor: pointer; position: relative;">
+                            <div class="user-details">
+                                <strong>Administrador</strong>
+                                <span>admin@topservice.com</span>
+                            </div>
+                            <div class="user-avatar">
+                                TS
+                            </div>
+                            
+                            <!-- Menu Dropdown de Perfil -->
+                            <div id="profile-menu" class="profile-menu" style="display: none; position: absolute; top: 100%; right: 0; background: white; border: 1px solid var(--border-color); border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); min-width: 200px; z-index: 1000; margin-top: 8px;">
+                                <div style="padding: 12px;">
+                                    <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--border-color);">
+                                        Administrador
+                                    </div>
+                                    <button id="logout-btn" style="width: 100%; padding: 10px 12px; background: none; border: none; color: var(--text-primary); cursor: pointer; text-align: left; font-size: 0.95em; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='rgba(13, 59, 102, 0.1)'" onmouseout="this.style.background='none'">
+                                        🚪 Sair
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <!-- CARDS DE MÉTRICAS -->
+                <section class="metrics-section">
+                    <div class="metrics-grid">
+                        <!-- Card 1: Funcionários -->
+                        <article class="metric-card">
+                            <div class="metric-header">
+                                <h3>Total de Funcionários</h3>
+                            </div>
+                            <div class="metric-value" id="total-funcionarios">0</div>
+                            <div class="metric-footer">
+                                <small>Cadastrados no sistema</small>
+                            </div>
+                        </article>
+
+                        <!-- Card 2: Presença -->
+                        <article class="metric-card">
+                            <div class="metric-header">
+                                <h3>Presentes Hoje</h3>
+                            </div>
+                            <div class="metric-value" id="presentes-hoje">0</div>
+                            <div class="metric-footer">
+                                <small>Presença registrada</small>
+                            </div>
+                        </article>
+
+                        <!-- Card 3: Horas Extras -->
+                        <article class="metric-card">
+                            <div class="metric-header">
+                                <h3>Horas Extras</h3>
+                            </div>
+                            <div class="metric-value" id="horas-extras-mes">0h</div>
+                            <div class="metric-footer">
+                                <small>Este mês</small>
+                            </div>
+                        </article>
+
+                        <!-- Card 4: Atrasos -->
+                        <article class="metric-card">
+                            <div class="metric-header">
+                                <h3>Atrasos Totais</h3>
+                            </div>
+                            <div class="metric-value" id="atrasos-mes">0h</div>
+                            <div class="metric-footer">
+                                <small>Este mês</small>
+                            </div>
+                        </article>
+                    </div>
+                </section>
+
+                <!-- SEÇÃO DE GRÁFICOS E ANÁLISE DE DADOS -->
+                <section class="charts-section">
+                    <h2 style="color: var(--preto); font-size: 1.8rem; margin-bottom: 10px;">Análise de Dados</h2>
+                    <p style="color: var(--text-tertiary); margin-bottom: 30px;">Gráficos e métricas em tempo real do sistema</p>
+                    
+                    <div class="charts-grid">
+                        <!-- Gráfico 1: Presença Hoje -->
+                        <div class="chart-container">
+                            <canvas id="chartPresenceToday"></canvas>
+                        </div>
+
+                        <!-- Gráfico 2: Afastamentos por Tipo -->
+                        <div class="chart-container">
+                            <canvas id="chartAbsenceType"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Painel de Avisos -->
+                    <div style="margin-top: 30px; background: var(--bg-secondary); border-radius: 12px; padding: 24px; border: 1px solid var(--border-color); box-shadow: var(--card-shadow);">
+                        <h3 style="color: var(--text-primary); margin-top: 0; font-size: 1.2rem; margin-bottom: 20px; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px;">⚠️ Avisos Importantes</h3>
+                        
+                        <div id="alerts-container" style="display: grid; gap: 12px;">
+                            <p style="text-align: center; color: var(--text-tertiary); padding: 20px;">Carregando avisos...</p>
+                        </div>
+                        
+                        <!-- Paginação de Avisos -->
+                        <div id="alerts-pagination" style="display: none; margin-top: 20px; display: flex; justify-content: center; gap: 8px; padding-top: 15px; border-top: 1px solid var(--border-color);">
+                            <button onclick="previousAlertsPage()" style="padding: 8px 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">← Anterior</button>
+                            <span id="alerts-page-info" style="padding: 8px 12px; color: var(--text-primary); font-weight: 600;"></span>
+                            <button onclick="nextAlertsPage()" style="padding: 8px 12px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 600;">Próxima →</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SEÇÃO DE STATUS DO SISTEMA -->
+                <section class="status-section">
+                    <div class="status-card">
+                        <h2>Status do Sistema</h2>
+                        <div class="status-content">
+                            <p>Bem-vindo ao <strong>Top Service</strong> - Seu sistema completo de gestão empresarial.</p>
+                            
+                            <div class="system-info">
+                                <div class="info-item">
+                                    <span class="info-label">Versão:</span>
+                                    <span class="info-value">1.0.0</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Status:</span>
+                                    <span class="info-value online">● Online</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Última atualização:</span>
+                                    <span class="info-value">Agora mesmo</span>
+                                </div>
+                            </div>
+
                             <div class="next-features">
                                 <h4>Próximas Funcionalidades:</h4>
                                 <ul class="features-list">
@@ -117,144 +253,6 @@
     <script src="scripts/debug.js"></script>
     <script src="scripts/toast.js"></script>
     <script src="scripts/supabase-realtime.js"></script>
-    
-    <!-- SCRIPT DE EMERGÊNCIA - Carregar dados do Supabase -->
-    <script>
-    // Função global para carregar dados do Supabase
-    window.carregarDadosSupabase = async function() {
-        console.log('%c🚨 CARREGAMENTO DE EMERGÊNCIA INICIADO', 'color: red; font-size: 16px; font-weight: bold;');
-        
-        const SUPABASE_URL = 'https://szwqezafiilwxgpyukxq.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN6d3FlemFmaWlsd3hncHl1a3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjQ4NTExNjAsImV4cCI6MjA4MDQyNzE2MH0.eENe9npKaeN9dCWTn019a04Ekl9EjXKaYJd-aGYuNt0';
-        
-        const tabelas = [
-            { nome: 'employees', local: 'topservice_employees_v1' },
-            { nome: 'departamentos', local: 'topservice_departamentos_v1' },
-            { nome: 'punches', local: 'topservice_punches_v1' },
-            { nome: 'cargos', local: 'topservice_cargos_v1' },
-            { nome: 'afastamentos', local: 'topservice_afastamentos_v1' }
-        ];
-        
-        let totalCarregado = 0;
-        
-        for (const tabela of tabelas) {
-            try {
-                const response = await fetch(`${SUPABASE_URL}/rest/v1/${tabela.nome}`, {
-                    headers: { 
-                        'apikey': SUPABASE_KEY, 
-                        'Authorization': 'Bearer ' + SUPABASE_KEY 
-                    }
-                });
-                
-                if (response.ok) {
-                    const dados = await response.json();
-                    
-                    // Normalizar dados de employees
-                    let dadosNormalizados = dados;
-                    if (tabela.nome === 'employees') {
-                        dadosNormalizados = dados.map(item => ({
-                            id: item.id,
-                            matricula: item.matricula,
-                            nome: item.nome,
-                            cargo: item.cargo,
-                            departamento: item.departamento,
-                            adicional: item.adicional,
-                            valeAlimentacao: item.vale_alimentacao,
-                            valeTransporte: item.vale_transporte,
-                            cpf: item.cpf,
-                            email: item.email,
-                            admissao: item.admissao,
-                            telefone: item.telefone,
-                            endereco: item.endereco,
-                            status: item.status
-                        }));
-                        totalCarregado = dadosNormalizados.length;
-                    }
-                    
-                    // Normalizar departamentos
-                    if (tabela.nome === 'departamentos') {
-                        dadosNormalizados = dados.map(item => ({
-                            id: item.id,
-                            nome: item.name || item.nome,
-                            name: item.name || item.nome,
-                            description: item.description
-                        }));
-                    }
-                    
-                    localStorage.setItem(tabela.local, JSON.stringify(dadosNormalizados));
-                    console.log(`✅ ${tabela.nome}: ${dadosNormalizados.length} registros`);
-                }
-            } catch (e) {
-                console.error(`❌ Erro ao carregar ${tabela.nome}:`, e);
-            }
-        }
-        
-        // Atualizar variáveis globais
-        window.employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-        window.departamentos = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
-        
-        console.log('%c✅ DADOS CARREGADOS!', 'color: green; font-size: 14px; font-weight: bold;');
-        console.log('👥 Funcionários:', window.employees.length);
-        
-        // Atualizar interface
-        if (typeof renderEmployeeList === 'function') {
-            renderEmployeeList();
-            console.log('✅ Lista de funcionários atualizada!');
-        }
-        
-        // Atualizar métricas do dashboard
-        if (window.navigationSystem && typeof window.navigationSystem.updateDashboardMetrics === 'function') {
-            window.navigationSystem.updateDashboardMetrics();
-        }
-        
-        // Atualizar total de funcionários no dashboard
-        const totalEl = document.getElementById('total-funcionarios');
-        if (totalEl) {
-            totalEl.textContent = window.employees.length;
-        }
-        
-        return totalCarregado;
-    };
-    
-    // Executar automaticamente ao carregar a página
-    document.addEventListener('DOMContentLoaded', function() {
-        // Criar botão de emergência
-        const btn = document.createElement('button');
-        btn.id = 'btn-carregar-supabase';
-        btn.innerHTML = '🔄 Carregar Dados';
-        btn.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:99999;padding:15px 25px;background:linear-gradient(135deg,#27ae60,#2ecc71);color:white;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;box-shadow:0 4px 15px rgba(39,174,96,0.4);';
-        
-        btn.onclick = async function() {
-            btn.disabled = true;
-            btn.innerHTML = '⏳ Carregando...';
-            btn.style.background = '#95a5a6';
-            
-            try {
-                const total = await window.carregarDadosSupabase();
-                btn.innerHTML = '✅ ' + total + ' funcionários carregados!';
-                btn.style.background = '#27ae60';
-                
-                setTimeout(() => {
-                    btn.innerHTML = '🔄 Carregar Dados';
-                    btn.style.background = 'linear-gradient(135deg,#27ae60,#2ecc71)';
-                    btn.disabled = false;
-                }, 3000);
-            } catch (e) {
-                btn.innerHTML = '❌ Erro!';
-                btn.style.background = '#e74c3c';
-                console.error(e);
-            }
-        };
-        
-        document.body.appendChild(btn);
-        console.log('✅ Botão de emergência criado!');
-        
-        // Carregar dados automaticamente
-        setTimeout(() => {
-            window.carregarDadosSupabase();
-        }, 1000);
-    });
-    </script>
     
     <script>
         console.log('🧪 TESTE: Verificando se navegação pode ser testada');
