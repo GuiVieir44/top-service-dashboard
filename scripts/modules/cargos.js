@@ -153,14 +153,15 @@ function renderCargos() {
     }
 
     cargos.forEach(cargo => {
+        const cargoIdLiteral = String(cargo.id).replace(/'/g, "\\'");
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="padding:10px;border:1px solid #e6e6e6;">${cargo.nome}</td>
             <td style="padding:10px;border:1px solid #e6e6e6;">${cargo.horasDia}h</td>
             <td style="padding:10px;border:1px solid #e6e6e6;color:#2ecc71;font-weight:bold;">${cargo.bancoHoras >= 0 ? '+' : ''}${cargo.bancoHoras}h</td>
             <td style="padding:10px;border:1px solid #e6e6e6;text-align:center;">
-                <button onclick="editCargoModal(${cargo.id})" style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:5px;">Editar</button>
-                <button onclick="deletCargoConfirm(${cargo.id})" style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;">Excluir</button>
+                <button onclick="editCargoModal('${cargoIdLiteral}')" style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:5px;">Editar</button>
+                <button onclick="deletCargoConfirm('${cargoIdLiteral}')" style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;">Excluir</button>
             </td>
         `;
         tbody.appendChild(tr);

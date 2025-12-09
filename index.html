@@ -14,7 +14,7 @@
     <!-- XLSX para exportar Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- INSTANT RENDER - Renderizar tudo instantaneamente -->
-    <script src="scripts/instant-render.js"></script>
+    <script src="scripts/utils/instant-render.js"></script>
 </head>
 <body>
     <!-- Botão Toggle Sidebar (Mobile) -->
@@ -250,58 +250,65 @@
         </main>
     </div>
     
-    <script src="scripts/debug.js"></script>
-    <script src="scripts/toast.js"></script>
-    <script src="scripts/supabase-realtime.js"></script>
-    
-    <script>
-        console.log('🧪 TESTE: Verificando se navegação pode ser testada');
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log('✅ DOM pronto, aguardando navigation.js...');
-        });
-    </script>
-    <script src="scripts/export-relatorio.js"></script>
-    <script src="scripts/relatorio-departamento.js"></script>
-    <script src="scripts/relatorio-fechamento.js"></script>
-    <script src="scripts/relatorio-ferias.js"></script>
-    <script src="scripts/data.js"></script>
-    <script src="scripts/cargos.js"></script>
-    <script src="scripts/cargos-departamento.js"></script>
-    <script src="scripts/departamentos.js"></script>
-    <script src="scripts/employees.js"></script>
-    <script src="scripts/ponto.js"></script>
-    <script src="scripts/adiantamentos.js"></script>
-    <script src="scripts/consulta-ponto.js"></script>
-    <script src="scripts/ausencias.js"></script>
-    <script src="scripts/afastamentos.js"></script>
-    <script src="scripts/atrasos.js"></script>
-    <script src="scripts/relatorio-ponto.js"></script>
-    <script src="scripts/demo-data.js"></script>
-    <script src="scripts/test-relatorio.js"></script>
-    <script src="scripts/relatorios.js"></script>
-    <script src="scripts/relatorios-departamento-complexo.js"></script>
-    <script src="scripts/users.js"></script>
-    <script src="scripts/manual.js"></script>
-    <script src="scripts/configuracoes.js"></script>
-    <script src="scripts/charts.js"></script>
-    <script src="scripts/auto-corrigir.js"></script>
-    <script src="scripts/permissions.js"></script>
-    <script src="scripts/notifications.js"></script>
-    <script src="scripts/theme.js"></script>
-    <script src="scripts/validation.js"></script>
-    <script src="scripts/ai.js"></script>
-    <script src="scripts/persistence.js"></script>
-    <script src="scripts/save-indicator.js"></script>
-    <script src="scripts/persistence-test.js"></script>
-    <script src="scripts/test-improvements.js"></script>
-    <script src="scripts/test-nocturnal-overtime.js"></script>
-    <script src="scripts/add-folga-mass.js"></script>
-    <script src="scripts/debug-func-008.js"></script>
-    <script src="scripts/analisar-todos-noturnas.js"></script>
-    <script src="scripts/corrigir-padrao-008.js"></script>
-    <script src="scripts/debug-horas-extra.js"></script>
-    <script src="scripts/navigation.js"></script>
-    <script src="scripts/mobile-toggle.js"></script>
+    <!-- Core Scripts -->
+    <script src="scripts/core/data.js"></script>
+    <script src="scripts/core/navigation.js"></script>
+    <script src="scripts/core/persistence.js"></script>
+    <script src="scripts/core/supabase-realtime.js"></script>
+
+    <!-- Module Scripts -->
+    <script src="scripts/modules/employees.js"></script>
+    <script src="scripts/modules/ponto.js"></script>
+    <script src="scripts/modules/departamentos.js"></script>
+    <script src="scripts/modules/cargos.js"></script>
+    <script src="scripts/modules/cargos-departamento.js"></script>
+    <script src="scripts/modules/adiantamentos.js"></script>
+    <script src="scripts/modules/consulta-ponto.js"></script>
+    <script src="scripts/modules/ausencias.js"></script>
+    <script src="scripts/modules/afastamentos.js"></script>
+    <script src="scripts/modules/atrasos.js"></script>
+    <script src="scripts/modules/users.js"></script>
+    <script src="scripts/modules/manual.js"></script>
+    <script src="scripts/modules/configuracoes.js"></script>
+    <script src="scripts/modules/ai.js"></script>
+
+    <!-- Report Scripts -->
+    <script src="scripts/reports/relatorios.js"></script>
+    <script src="scripts/reports/relatorio-ponto.js"></script>
+    <script src="scripts/reports/relatorio-departamento.js"></script>
+    <script src="scripts/reports/relatorio-fechamento.js"></script>
+    <script src="scripts/reports/relatorio-ferias.js"></script>
+    <script src="scripts/reports/export-relatorio.js"></script>
+    <script src="scripts/reports/relatorios-departamento-complexo.js"></script>
+
+    <!-- Utility Scripts -->
+    <script src="scripts/utils/toast.js"></script>
+    <script src="scripts/utils/charts.js"></script>
+    <script src="scripts/utils/permissions.js"></script>
+    <script src="scripts/utils/notifications.js"></script>
+    <script src="scripts/utils/theme.js"></script>
+    <script src="scripts/utils/validation.js"></script>
+    <script src="scripts/utils/mobile-toggle.js"></script>
+    <script src="scripts/utils/save-indicator.js"></script>
+    <script src="scripts/utils/auto-corrigir.js"></script>
+
+    <!-- Test & Debug Scripts (Should be removed in production) -->
+    <script src="scripts/tests/debug.js"></script>
+    <script src="scripts/tests/demo-data.js"></script>
+    <script src="scripts/tests/test-relatorio.js"></script>
+    <script src="scripts/tests/persistence-test.js"></script>
+    <script src="scripts/tests/test-improvements.js"></script>
+    <script src="scripts/tests/test-nocturnal-overtime.js"></script>
+    <script src="scripts/tests/add-folga-mass.js"></script>
+    <script src="scripts/tests/debug-func-008.js"></script>
+    <script src="scripts/tests/analisar-todos-noturnas.js"></script>
+    <script src="scripts/tests/corrigir-padrao-008.js"></script>
+    <script src="scripts/tests/debug-horas-extra.js"></script>
+    <script src="scripts/tests/supabase-sync-completo.js"></script>
+    <script src="scripts/tests/supabase-sync-v2.js"></script>
+    <script src="scripts/tests/supabase-sync-v3.js"></script>
+    <script src="scripts/tests/supabase-sync.js"></script>
+    <script src="scripts/tests/test-supabase.js"></script>
     
     <!-- Script de inicialização das tabelas de atrasos e horas extras -->
     <script>

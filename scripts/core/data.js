@@ -28,6 +28,43 @@ const VALID_STATUSES = ['Ativo', 'Desligado', 'Férias', 'Afastado'];
 let employees = [];
 window.employees = employees;
 
+// Remove duplicados por ID (prioritário) ou matrícula, mantendo a última ocorrência
+function dedupeEmployees(list) {
+    if (!Array.isArray(list)) return [];
+
+    const seenIds = new Set();
+    const seenMatriculas = new Set();
+    const result = [];
+
+    for (let i = list.length - 1; i >= 0; i--) {
+        const emp = list[i];
+        if (!emp) continue;
+
+        const idKey = emp.id ? String(emp.id).trim() : '';
+        const matriculaKey = emp.matricula ? String(emp.matricula).toLowerCase().trim() : '';
+
+        const hasId = idKey && seenIds.has(idKey);
+        const hasMatricula = matriculaKey && seenMatriculas.has(matriculaKey);
+        if (hasId || hasMatricula) continue;
+
+        if (idKey) {
+            seenIds.add(idKey);
+        }
+        if (matriculaKey) {
+            seenMatriculas.add(matriculaKey);
+        }
+
+        if (!idKey && !matriculaKey) {
+            continue;
+        }
+
+        result.unshift(emp);
+    }
+
+    return result;
+}
+window.dedupeEmployees = dedupeEmployees;
+
 // ===== GERAR UUID =====
 function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -44,8 +81,11 @@ function generateUUID() {
         if (stored) {
             const parsed = JSON.parse(stored);
             if (Array.isArray(parsed)) {
-                employees = parsed;
+                employees = dedupeEmployees(parsed);
                 window.employees = employees;
+                if (employees.length !== parsed.length) {
+                    localStorage.setItem(EMP_KEY, JSON.stringify(employees));
+                }
                 console.log('✅ [data.js] Funcionários carregados:', employees.length);
             }
         }
@@ -76,6 +116,7 @@ function scheduleSaveEmployees() {
  */
 function performSaveEmployees() {
     try {
+        employees = dedupeEmployees(employees);
         localStorage.setItem(EMP_KEY, JSON.stringify(employees));
         window.employees = employees; // Manter sincronizado
         
@@ -101,8 +142,12 @@ function initializeEmployeesData() {
     try {
         const stored = localStorage.getItem(EMP_KEY);
         // NÃO usar employeesData como fallback - começar vazio
-        employees = stored ? JSON.parse(stored) : [];
+        const parsed = stored ? JSON.parse(stored) : [];
+        employees = dedupeEmployees(parsed);
         window.employees = employees;
+        if (employees.length !== parsed.length) {
+            localStorage.setItem(EMP_KEY, JSON.stringify(employees));
+        }
         console.log('✅ Funcionários carregados do localStorage:', employees.length);
     } catch (e) {
         console.error('Erro ao carregar employees do localStorage:', e);
@@ -115,8 +160,10 @@ function initializeEmployeesData() {
 window.refreshEmployeesCache = function(data = null) {
     try {
         const src = data ? data : JSON.parse(localStorage.getItem(EMP_KEY) || '[]');
-        employees = Array.isArray(src) ? src : [];
+        const cleaned = dedupeEmployees(Array.isArray(src) ? src : []);
+        employees = cleaned;
         window.employees = employees;
+        localStorage.setItem(EMP_KEY, JSON.stringify(employees));
         console.log('🔄 refreshEmployeesCache:', employees.length, 'registros');
     } catch (e) {
         console.error('❌ refreshEmployeesCache falhou:', e);
@@ -153,12 +200,13 @@ function getTotalEmployees() {
 
 /**
  * Obtém um funcionário específico pelo ID com validação
- * @param {number} id - ID do funcionário
+ * @param {string|number} id - ID do funcionário (UUID ou número legado)
  * @returns {Employee|null} Dados do funcionário ou null se não encontrado
  */
 function getEmployeeById(id) {
-    if (!Number.isInteger(id) || id <= 0) return null;
-    return employees.find(emp => emp.id === id) || null;
+    if (id === undefined || id === null) return null;
+    const idStr = String(id);
+    return employees.find(emp => String(emp.id) === idStr) || null;
 }
 
 /**

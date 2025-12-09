@@ -192,13 +192,18 @@
     function setLocalData(table, data) {
         const config = TABLES[table];
         if (!config) return;
+
+        let payload = data;
+        if (table === 'employees' && typeof window.dedupeEmployees === 'function') {
+            payload = window.dedupeEmployees(data);
+        }
         
-        localStorage.setItem(config.localStorage, JSON.stringify(data));
-        window[table] = data;
+        localStorage.setItem(config.localStorage, JSON.stringify(payload));
+        window[table] = payload;
 
         // Garantir que o cache em memória dos funcionários seja atualizado
         if (table === 'employees' && typeof window.refreshEmployeesCache === 'function') {
-            window.refreshEmployeesCache(data);
+            window.refreshEmployeesCache(payload);
         }
     }
 

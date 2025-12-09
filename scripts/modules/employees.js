@@ -73,6 +73,7 @@ function renderEmployeeList(searchTerm) {
     
     // Itera sobre cada funcionário e cria uma linha na tabela
     employees.forEach(employee => {
+        const idLiteral = String(employee.id).replace(/'/g, "\\'");
         const row = document.createElement('tr');
         
         // Formata a data de admissão
@@ -116,9 +117,9 @@ function renderEmployeeList(searchTerm) {
             </td>
             <td>${dataAdmissao}</td>
             <td>
-                <div class="action-buttons">
-                    <button class="btn-edit" onclick="window.navigationSystem.showPage('funcionarios-novo',{editId: ${employee.id}})">✏️ Editar</button>
-                    <button class="btn-delete" onclick="deleteEmployeeUI(${employee.id})">🗑️ Excluir</button>
+                <div class="actions-cell">
+                    <button class="btn-edit" data-id='${idLiteral}'>✏️ Editar</button>
+                    <button class="btn-delete" data-id='${idLiteral}'>🗑️ Excluir</button>
                 </div>
             </td>
         `;
@@ -289,7 +290,7 @@ function populateEmployeeForm(id) {
             return;
         }
         
-        const emp = getEmployeeById(Number(id));
+        const emp = getEmployeeById(id);
         if (!emp) {
             console.warn('[EMP] Funcionário não encontrado:', id);
             return;
@@ -351,18 +352,39 @@ function clearEmployeeForm() {
  * Inicializa comportamentos do módulo de funcionários (botão Adicionar)
  */
 function initEmployeeModule() {
+    console.log('🚀 initEmployeeModule chamado');
+    // Garante que o DOM está pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupModule);
+    } else {
+        setupModule();
+    }
+}
+
+function setupModule() {
+    console.log('🔧 Configurando módulo de funcionários...');
     // Setup search input listener
     var searchInput = document.getElementById('employee-search');
     if (searchInput) {
-        searchInput.addEventListener('input', function(){
-            var term = this.value;
-            renderEmployeeList(term);
-        });
+        // Evita adicionar múltiplos listeners
+        if (!searchInput.hasAttribute('data-listener-added')) {
+            searchInput.addEventListener('input', function() {
+                var term = this.value;
+                renderEmployeeList(term);
+            });
+            searchInput.setAttribute('data-listener-added', 'true');
+        }
     }
 
-    // render inicial
+    // Render inicial
     renderEmployeeList();
+    // Adiciona os listeners para os botões de editar/excluir
+    setupEmployeeActionButtons();
+    console.log('✅ Módulo de funcionários configurado.');
 }
+
+// Expõe a função para ser chamada pelo sistema de navegação
+window.initEmployeeModule = initEmployeeModule;
 
 /**
  * Inicializa listeners para o formulário de funcionários
@@ -383,7 +405,7 @@ function initEmployeeFormListeners() {
         
         newDeptSelect.addEventListener('change', function() {
             // Quando departamento mudar, recarrega os cargos disponíveis
-            const departmentId = this.value ? Number(this.value) : null;
+            const departmentId = this.value || null;
             console.log('[EMP] Departamento selecionado:', departmentId);
             populateCargoSelect('form-cargo', departmentId);
         });
@@ -423,12 +445,13 @@ function submitEmployeeForm() {
     var departamentoName = '';
     
     if (cargoId) {
-        var cargo = typeof getCargoById === 'function' ? getCargoById(Number(cargoId)) : null;
+        var cargoLookupId = isNaN(Number(cargoId)) ? cargoId : Number(cargoId);
+        var cargo = typeof getCargoById === 'function' ? getCargoById(cargoLookupId) : null;
         cargoName = cargo ? cargo.nome : cargoId;
     }
     
     if (departamentoId) {
-        var departamento = typeof getDepartmentById === 'function' ? getDepartmentById(Number(departamentoId)) : null;
+        var departamento = typeof getDepartmentById === 'function' ? getDepartmentById(departamentoId) : null;
         departamentoName = departamento ? departamento.nome : departamentoId;
         console.log(`📌 Departamento selecionado: ID=${departamentoId}, Nome=${departamentoName}`, departamento);
     }
@@ -457,7 +480,7 @@ function submitEmployeeForm() {
         
         if (editId) {
             console.log('🔄 Atualizando funcionário ID:', editId);
-            var updated = updateEmployee(Number(editId), empData);
+            var updated = updateEmployee(editId, empData);
             if (updated) {
                 showToast('Funcionário atualizado!', 'success');
                 console.log('✅ Funcionário atualizado com sucesso');
@@ -499,8 +522,41 @@ function cancelEmployeeForm() {
     }
 }
 
+// Adiciona event listeners para os botões de ação da tabela de funcionários
+function setupEmployeeActionButtons() {
+    const employeeListBody = document.getElementById('employee-list-body');
+    if (employeeListBody) {
+        employeeListBody.addEventListener('click', function(event) {
+            const target = event.target;
+            const editButton = target.closest('.btn-edit');
+            const deleteButton = target.closest('.btn-delete');
+
+            if (editButton) {
+                const id = editButton.dataset.id;
+                if (id && window.navigationSystem) {
+                    window.navigationSystem.showPage('funcionarios-novo', { editId: id });
+                }
+            }
+
+            if (deleteButton) {
+                const id = deleteButton.dataset.id;
+                if (id) {
+                    deleteEmployeeUI(id);
+                }
+            }
+        });
+    }
+}
+
 // ==========================================
 // Tornar funções globais
 // ==========================================
 window.submitEmployeeForm = submitEmployeeForm;
 window.cancelEmployeeForm = cancelEmployeeForm;
+window.renderEmployeeList = renderEmployeeList;
+window.deleteEmployeeUI = deleteEmployeeUI;
+window.openEmployeeModal = openEmployeeModal;
+window.populateEmployeeForm = populateEmployeeForm;
+window.initEmployeeModule = initEmployeeModule;
+window.initEmployeeFormListeners = initEmployeeFormListeners;
+window.setupEmployeeActionButtons = setupEmployeeActionButtons;
