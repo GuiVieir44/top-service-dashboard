@@ -72,7 +72,6 @@ function renderEmployeeList(searchTerm) {
     }
     
     // Itera sobre cada funcionário e cria uma linha na tabela
-    const allDepartments = typeof loadDepartments === 'function' ? loadDepartments() : [];
     employees.forEach(employee => {
         const idLiteral = String(employee.id).replace(/'/g, "\\'");
         const row = document.createElement('tr');
@@ -83,12 +82,15 @@ function renderEmployeeList(searchTerm) {
         // Define a cor do badge de status
         const statusColor = getStatusColor(employee.status);
         
-        // Buscar nome do departamento de forma robusta
+        // Buscar nome do departamento (se for ID, buscar o nome)
         let deptNome = employee.departamento || '-';
-        if (employee.departamento) {
-            const dept = allDepartments.find(d => d.id === employee.departamento || d.nome === employee.departamento);
-            if (dept) {
-                deptNome = dept.nome;
+        if (deptNome && deptNome.startsWith('dept_')) {
+            // É um ID, buscar o nome real
+            if (typeof getDepartmentById === 'function') {
+                const dept = getDepartmentById(deptNome);
+                if (dept) {
+                    deptNome = dept.nome || dept.name || deptNome;
+                }
             }
         }
         
@@ -156,21 +158,9 @@ function getStatusColor(status) {
  */
 function deleteEmployeeUI(id) {
     if (confirm("Tem certeza que deseja deletar este funcionário?")) {
-        if (window.supabaseRealtime) {
-            window.supabaseRealtime.remove('employees', id)
-                .then(() => {
-                    showToast('Funcionário excluído com sucesso!', 'success');
-                    renderEmployeeList(); // A UI será atualizada pelo listener, mas forçamos aqui para feedback imediato
-                })
-                .catch(err => {
-                    console.error('Erro ao excluir via Supabase:', err);
-                    showToast('Erro ao excluir funcionário.', 'error');
-                });
-        } else {
-            // Fallback para o método antigo se o Supabase não estiver disponível
-            deleteEmployee(id);
-            renderEmployeeList();
-        }
+        // Esta função vem do data.js
+        deleteEmployee(id);
+        renderEmployeeList(); // Atualiza a tabela
     }
 }
 
@@ -485,45 +475,36 @@ function submitEmployeeForm() {
         
         if (editId) {
             console.log('🔄 Atualizando funcionário ID:', editId);
-            if (window.supabaseRealtime) {
-                window.supabaseRealtime.update('employees', editId, empData)
-                    .then(() => {
-                        showToast('Funcionário atualizado!', 'success');
-                        if (window.navigationSystem) window.navigationSystem.showPage('funcionarios');
-                    })
-                    .catch(err => {
-                        console.error('Erro ao atualizar via Supabase:', err);
-                        showToast('Erro ao atualizar funcionário.', 'error');
-                    });
-            } else {
-                // Fallback
-                updateEmployee(editId, empData);
+            var updated = updateEmployee(editId, empData);
+            if (updated) {
                 showToast('Funcionário atualizado!', 'success');
-                if (window.navigationSystem) window.navigationSystem.showPage('funcionarios');
+                console.log('✅ Funcionário atualizado com sucesso');
+            } else {
+                showToast('Erro ao atualizar funcionário.', 'error');
+                console.error('❌ updateEmployee retornou false');
             }
         } else {
             console.log('➕ Adicionando novo funcionário');
-            if (window.supabaseRealtime) {
-                window.supabaseRealtime.insert('employees', empData)
-                    .then(added => {
-                        showToast('Funcionário cadastrado: ' + (added.nome || ''), 'success');
-                        if (window.navigationSystem) window.navigationSystem.showPage('funcionarios');
-                    })
-                    .catch(err => {
-                        console.error('Erro ao adicionar via Supabase:', err);
-                        showToast('Erro ao cadastrar funcionário.', 'error');
-                    });
+            var added = addEmployee(empData);
+            if (added) {
+                showToast('Funcionário cadastrado: ' + added.nome, 'success');
+                console.log('✅ Funcionário adicionado com sucesso:', added);
             } else {
-                // Fallback
-                const newEmp = addEmployee(empData);
-                showToast('Funcionário cadastrado!', 'success');
-                if (window.navigationSystem) window.navigationSystem.showPage('funcionarios');
+                console.error('❌ Erro ao cadastrar. empData:', empData);
+                showToast('Erro ao cadastrar funcionário. Verifique console.', 'error');
             }
         }
-        
-    } catch (e) {
-        console.error('❌ Erro CRÍTICO no submitEmployeeForm:', e);
-        showToast('Erro inesperado. Verifique o console.', 'error');
+
+        // go back to funcionarios list
+        console.log('🚀 Voltando para lista de funcionários');
+        if (window.navigationSystem && typeof window.navigationSystem.showPage === 'function') {
+            window.navigationSystem.showPage('funcionarios');
+        }
+        // refresh list (render will be called when page loads, but call explicitly)
+        setTimeout(() => { try { renderEmployeeList(); } catch(e){} }, 200);
+    } catch (e) { 
+        console.error('❌ EXCEÇÃO ao salvar funcionário via formulário:', e); 
+        showToast('Erro ao salvar. Veja console.', 'error'); 
     }
 }
 

@@ -179,13 +179,10 @@
         const config = TABLES[table];
         if (!config) return [];
         
-        try {
-            const stored = localStorage.getItem(config.localStorage);
-            return stored ? JSON.parse(stored) : [];
-        } catch (e) {
-            console.error(`❌ Erro ao ler ${table} do localStorage:`, e);
-            return [];
-        }
+        // A partir de agora, os dados são lidos diretamente do cache `window.supabaseRealtime.data`
+        // Esta função pode ser mantida para compatibilidade ou removida se não for mais usada.
+        // Por segurança, vamos retornar o cache atual.
+        return window.supabaseRealtime.data[table] || [];
     }
 
     // ===== SALVAR DADOS LOCAIS =====

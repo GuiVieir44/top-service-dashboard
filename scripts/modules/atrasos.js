@@ -10,11 +10,11 @@ var DELAYS_KEY = 'topservice_delays_v1';
  * Atraso = quando funcionário entra após horaInicio do cargo
  */
 function calculateMonthlyDelays() {
-    const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-    const cargosDept = JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
-    const departamentos = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
-    const cargos = JSON.parse(localStorage.getItem('topservice_cargos_v1') || '[]');
+    const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+    const cargosDept = (window.supabaseRealtime && window.supabaseRealtime.data.cargos_departamento) || JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
+    const departamentos = (window.supabaseRealtime && window.supabaseRealtime.data.departamentos) || JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
+    const cargos = (window.supabaseRealtime && window.supabaseRealtime.data.cargos) || JSON.parse(localStorage.getItem('topservice_cargos_v1') || '[]');
     
     // Filtrar punches deste mês
     const now = new Date();
@@ -198,9 +198,9 @@ function getDelayDetails() {
  */
 function getTotalMonthlyDelayHours() {
     try {
-        const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-        const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-        const cargosDept = JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
+        const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+        const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+        const cargosDept = (window.supabaseRealtime && window.supabaseRealtime.data.cargos_departamento) || JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
         
         // Filtrar punches deste mês
         const now = new Date();

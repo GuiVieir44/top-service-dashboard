@@ -43,8 +43,8 @@ function destroyAllCharts() {
 function createPunchByEmployeeChart() {
     destroyAllCharts();
     
-    const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+    const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
     
     // Filtrar punches de hoje
     const today = new Date();
@@ -141,9 +141,9 @@ function createPunchByEmployeeChart() {
 function createPresenceTodayChart() {
     destroyAllCharts();
     
-    const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-    const absences = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+    const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
+    const absences = (window.supabaseRealtime && window.supabaseRealtime.data.absences) || [];
     
     const today = new Date().toISOString().split('T')[0];
     
@@ -263,8 +263,8 @@ function showPresenceModal(cat) {
  * Gráfico 3: Afastamentos por Tipo - COM INTERATIVIDADE
  */
 function createAbsenceByTypeChart() {
-    const afastamentos = JSON.parse(localStorage.getItem('topservice_afastamentos_v1') || '[]');
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+    const afastamentos = (window.supabaseRealtime && window.supabaseRealtime.data.afastamentos) || [];
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
     
     // Contar por tipo (corrigido: usar 'type' em vez de 'tipo')
     const typeCount = {};
@@ -376,12 +376,12 @@ function showAbsenceDetails(type, afastamentos, employees) {
  * Calcula horas extras: funcionários que trabalham MAIS que a carga horária
  */
 function createOvertimeChart() {
-    const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-    const cargosDept = JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
-    const absences = JSON.parse(localStorage.getItem('topservice_absences_v1') || '[]');
+    const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
+    const cargosDept = (window.supabaseRealtime && window.supabaseRealtime.data.cargos_departamento) || [];
+    const absences = (window.supabaseRealtime && window.supabaseRealtime.data.absences) || [];
     
-    console.log('[OVERTIME] 📊 Total de punches no localStorage:', punches.length);
+    console.log('[OVERTIME] 📊 Total de punches no cache:', punches.length);
     console.log('[OVERTIME] 📊 Total de employees:', employees.length);
     console.log('[OVERTIME] 📊 Total de ausências:', absences.length);
     

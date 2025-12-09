@@ -10,8 +10,8 @@ console.log('⏰ Módulo de adiantamentos carregado');
  */
 function calculateTodayAdvancements() {
     try {
-        const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-        const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+        const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+        const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
         
         // Obter hoje
         const today = new Date().toISOString().split('T')[0];

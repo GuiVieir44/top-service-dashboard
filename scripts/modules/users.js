@@ -40,7 +40,10 @@ function performSaveUsers(users) {
     }
 }
 
-function loadUsers() {
+async function loadUsers() {
+    if (window.supabaseRealtime && window.supabaseRealtime.data.users) {
+        return window.supabaseRealtime.data.users;
+    }
     try {
         var stored = localStorage.getItem(USER_KEY);
         if (stored) return JSON.parse(stored);
@@ -57,19 +60,43 @@ function saveUsers(users) {
     scheduleSaveUsers(users);
 }
 
-function createUser(username, password, role, name) {
-    var users = loadUsers();
-    if (users.find(u => u.username === username)) return null;
-    var id = users.length > 0 ? Math.max(...users.map(u=>u.id)) + 1 : 1;
-    var u = { id: id, username: username, password: password, role: role || 'user', name: name || username };
-    users.push(u);
-    saveUsers(users);
-    return u;
+async function createUser(username, password, role, name) {
+    const users = await loadUsers();
+    if (users.find(u => u.username === username)) {
+        showToast('Este nome de usuário já existe.', 'error');
+        return null;
+    }
+    
+    const newUser = {
+        // id is usually handled by the database, but let's create one for fallback
+        id: 'user_' + Date.now(), 
+        username, 
+        password, // Em um app real, isso seria um hash
+        role: role || 'user', 
+        name: name || username 
+    };
+
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        try {
+            const result = await window.supabaseRealtime.insert('users', newUser);
+            initUsersModule(); // Re-render
+            return result;
+        } catch (err) {
+            console.error('❌ Erro ao criar usuário via Supabase:', err);
+            throw err;
+        }
+    } else {
+        // Fallback
+        users.push(newUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(users));
+        initUsersModule(); // Re-render
+        return newUser;
+    }
 }
 
-function authenticate(username, password) {
-    var users = loadUsers();
-    var u = users.find(x => x.username === username && x.password === password);
+async function authenticate(username, password) {
+    const users = await loadUsers();
+    const u = users.find(x => x.username === username && x.password === password);
     if (u) {
         localStorage.setItem(SESSION_KEY, JSON.stringify({ userId: u.id, username: u.username, role: u.role }));
         return true;
@@ -87,7 +114,7 @@ function logout() {
     location.reload();
 }
 
-function initUsersModule() {
+async function initUsersModule() {
     var container = document.getElementById('users-module-container');
     if (!container) return;
 
@@ -122,10 +149,10 @@ function initUsersModule() {
             </div>
         `;
         var btn = document.getElementById('login-btn');
-        if (btn) btn.addEventListener('click', function(){
+        if (btn) btn.addEventListener('click', async function(){
             var u = document.getElementById('login-username').value;
             var p = document.getElementById('login-password').value;
-            if (authenticate(u,p)) {
+            if (await authenticate(u,p)) {
                 showToast('✅ Login bem-sucedido!', 'success');
                 location.reload();
             } else showToast('❌ Credenciais inválidas', 'error');
@@ -134,7 +161,7 @@ function initUsersModule() {
     }
 
     // session exist -> show admin panel if admin or manage users for admin
-    var users = loadUsers();
+    var users = await loadUsers();
     var html = `
         <div class="form-container">
             <h2>👥 Gerenciar Usuários</h2>
@@ -197,7 +224,7 @@ function initUsersModule() {
             '<td><strong>' + u.username + '</strong></td>' +
             '<td>' + u.name + '</td>' +
             '<td>' + profileBadge + '</td>' +
-            '<td class="actions"><button class="btn-delete" onclick="deleteUser(' + u.id + ')">🗑️ Excluir</button></td>' +
+            `<td class="actions"><button class="btn-delete" onclick="deleteUser('${u.id}')">🗑️ Excluir</button></td>` +
         '</tr>'; 
     });
     
@@ -218,10 +245,9 @@ function initUsersModule() {
         var rl = document.getElementById('new-role').value;
         var nm = document.getElementById('new-name').value;
         if (!un || !pw) { showToast('⚠️ Usuário e senha são obrigatórios', 'warning'); return; }
-        var created = createUser(un,pw,rl,nm);
-        if (!created) { showToast('❌ Esse usuário já existe', 'error'); return; }
-        showToast('✅ Usuário criado: ' + created.username, 'success');
-        initUsersModule();
+        createUser(un,pw,rl,nm).catch(err => {
+            showToast('❌ Erro ao criar usuário.', 'error');
+        });
     });
 
     var logoutBtn = document.getElementById('logout-btn');
@@ -229,8 +255,22 @@ function initUsersModule() {
 }
 
 function deleteUser(id) {
-    var users = loadUsers();
-    var filtered = users.filter(function(u){ return u.id !== id; });
-    saveUsers(filtered);
-    initUsersModule();
+async function deleteUser(id) {
+    if (!confirm('Tem certeza que deseja excluir este usuário?')) return;
+
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        try {
+            await window.supabaseRealtime.remove('users', id);
+            initUsersModule(); // Re-render
+        } catch (err) {
+            console.error('❌ Erro ao excluir usuário via Supabase:', err);
+            showToast('❌ Erro ao excluir usuário.', 'error');
+        }
+    } else {
+        // Fallback
+        const users = await loadUsers();
+        const filtered = users.filter(u => u.id !== id);
+        localStorage.setItem(USER_KEY, JSON.stringify(filtered));
+        initUsersModule(); // Re-render
+    }
 }

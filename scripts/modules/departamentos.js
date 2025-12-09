@@ -55,32 +55,36 @@ function saveDepartments(list) {
 }
 
 function addDepartment(name, description) {
-    var list = loadDepartments();
-    var id = list.length > 0 ? Math.max.apply(null, list.map(function(d){return d.id;})) + 1 : 1;
-    // Usar string ID para compatibilidade com Supabase
-    var stringId = 'dept_' + Date.now() + '_' + id;
-    var d = { id: stringId, nome: name, name: name, description: description || '' };
-    list.push(d);
-    saveDepartments(list);
-    
-    // Sincronizar com Supabase Realtime
-    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
-        console.log('☁️ Enviando departamento para Supabase Realtime...');
-        window.supabaseRealtime.insert('departamentos', d);
+    if (!name) {
+        showToast('Nome do departamento é obrigatório.', 'warning');
+        return Promise.reject('Nome é obrigatório');
     }
-    
-    // Validação: verificar se foi salvo corretamente
-    setTimeout(function() {
-        var savedList = loadDepartments();
-        if (savedList.length === list.length && savedList.some(dept => dept.id === d.id && (dept.nome === name || dept.name === name))) {
-            console.log('%c[DEPT] ✅ Departamento adicionado e verificado:', 'color: #27ae60;', d);
-        } else {
-            console.error('%c[DEPT] ❌ Falha na verificação de salvamento do departamento', 'color: #e74c3c;');
-        }
-    }, 150);
-    
-    renderDepartments();
-    return d;
+
+    const id = 'dept_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+    const newDept = { id, nome: name, name: name, description: description || '' };
+
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando novo departamento para Supabase...');
+        return window.supabaseRealtime.insert('departamentos', newDept)
+            .then(result => {
+                showToast('Departamento adicionado com sucesso!', 'success');
+                renderDepartments(); // Re-render for immediate feedback
+                return result;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao adicionar departamento via Supabase:', err);
+                showToast('Erro ao adicionar departamento.', 'error');
+                throw err;
+            });
+    } else {
+        // Fallback para localStorage
+        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
+        const list = loadDepartments();
+        list.push(newDept);
+        saveDepartments(list);
+        renderDepartments();
+        return Promise.resolve(newDept);
+    }
 }
 
 function getDepartmentById(id) {
@@ -96,50 +100,65 @@ function getDepartmentByName(name) {
 
 function deleteDepartment(id) {
     if (!confirm('Confirma exclusão deste departamento?')) return;
-    
-    // Converter para string para comparação consistente
-    var idStr = String(id);
-    var list = loadDepartments().filter(function(d){ 
-        return String(d.id) !== idStr; 
-    });
-    
-    saveDepartments(list);
-    renderDepartments();
-    
-    // Sincronizar com Supabase Realtime
+
     if (window.supabaseRealtime && window.supabaseRealtime.remove) {
         console.log('🗑️ Removendo departamento do Supabase Realtime...');
-        window.supabaseRealtime.remove('departamentos', id);
+        window.supabaseRealtime.remove('departamentos', id)
+            .then(() => {
+                showToast('Departamento excluído!', 'success');
+                renderDepartments(); // Re-render for immediate feedback
+            })
+            .catch(err => {
+                console.error('❌ Erro ao excluir departamento via Supabase:', err);
+                showToast('Erro ao excluir departamento.', 'error');
+            });
+    } else {
+        // Fallback para localStorage
+        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
+        const idStr = String(id);
+        const list = loadDepartments().filter(d => String(d.id) !== idStr);
+        saveDepartments(list);
+        renderDepartments();
     }
 }
 
 // NOVA FUNÇÃO: Atualizar departamento
 function updateDepartment(id, newName, newDescription) {
-    var list = loadDepartments();
-    var idStr = String(id);
-    var index = list.findIndex(function(d) { return String(d.id) === idStr; });
-    
-    if (index === -1) {
-        console.warn('[DEPT] Departamento não encontrado para edição:', id);
-        return null;
-    }
-    
-    // Atualizar dados
-    list[index].nome = newName;
-    list[index].name = newName;
-    list[index].description = newDescription || '';
-    
-    saveDepartments(list);
-    renderDepartments();
-    
-    // ☁️ SINCRONIZAR COM SUPABASE
+    const deptData = {
+        nome: newName,
+        name: newName,
+        description: newDescription || ''
+    };
+
     if (window.supabaseRealtime && window.supabaseRealtime.update) {
         console.log('☁️ Atualizando departamento no Supabase...');
-        window.supabaseRealtime.update('departamentos', id, list[index]);
+        return window.supabaseRealtime.update('departamentos', id, deptData)
+            .then(updatedDept => {
+                renderDepartments(); // Re-render for immediate feedback
+                return updatedDept;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao atualizar departamento via Supabase:', err);
+                showToast('Erro ao atualizar departamento.', 'error');
+                throw err;
+            });
+    } else {
+        // Fallback para localStorage
+        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
+        const list = loadDepartments();
+        const idStr = String(id);
+        const index = list.findIndex(d => String(d.id) === idStr);
+
+        if (index === -1) {
+            console.warn('[DEPT] Departamento não encontrado para edição:', id);
+            return Promise.resolve(null);
+        }
+
+        list[index] = { ...list[index], ...deptData };
+        saveDepartments(list);
+        renderDepartments();
+        return Promise.resolve(list[index]);
     }
-    
-    console.log('[DEPT] ✅ Departamento atualizado:', list[index]);
-    return list[index];
 }
 
 // NOVA FUNÇÃO: Abrir modal de edição de departamento
@@ -178,16 +197,6 @@ function openEditDepartmentModal(id) {
                                 style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
                             Salvar
                         </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
-// NOVA FUNÇÃO: Salvar edição de departamento
 function saveEditDepartment(id) {
     var newName = document.getElementById('edit-dept-name').value.trim();
     var newDesc = document.getElementById('edit-dept-desc').value.trim();
@@ -195,6 +204,22 @@ function saveEditDepartment(id) {
     if (!newName) {
         showToast('Nome é obrigatório', 'warning');
         return;
+    }
+    
+    updateDepartment(id, newName, newDesc)
+        .then(updated => {
+            if (updated) {
+                showToast('Departamento atualizado!', 'success');
+                const modal = document.getElementById('modal-edit-dept');
+                if (modal) modal.remove();
+            } else {
+                showToast('Erro ao atualizar departamento', 'error');
+            }
+        })
+        .catch(() => {
+            showToast('Erro ao atualizar departamento', 'error');
+        });
+}       return;
     }
     
     var updated = updateDepartment(id, newName, newDesc);
@@ -400,46 +425,37 @@ function abrirCargosDepartamentoModal(deptId, deptName) {
             var option = document.createElement('option');
             option.value = c.id;
             option.textContent = c.nome;
-            cargoSelect.appendChild(option);
-        });
-    }
-    
-    // Inicializa módulo
-    if (typeof initCargosDeptoModule === 'function') {
-        initCargosDeptoModule(deptId);
-    }
-}
-
 function initDepartmentsModule() {
     console.log('[DEPT] Inicializando módulo Departamentos');
     
-    // Validar e garantir que os departamentos existentes sejam preservados
-    const existingDepts = loadDepartments();
-    console.log('[DEPT] Departamentos encontrados ao carregar:', existingDepts.length, existingDepts);
-    
     var addBtn = document.getElementById('dept-add-btn');
     if (addBtn) {
-        addBtn.onclick = function(){
-            var name = document.getElementById('dept-name')?.value?.trim();
-            var desc = document.getElementById('dept-desc')?.value?.trim() || '';
-            if (!name) { showToast('Nome do departamento é obrigatório.', 'warning'); return; }
+        addBtn.onclick = function() {
+            var nameInput = document.getElementById('dept-name');
+            var descInput = document.getElementById('dept-desc');
             
-            const newDept = addDepartment(name, desc);
-            console.log('[DEPT] Novo departamento adicionado:', newDept);
+            var name = nameInput?.value?.trim();
+            var desc = descInput?.value?.trim() || '';
+
+            if (!name) {
+                showToast('Nome do departamento é obrigatório.', 'warning');
+                return;
+            }
             
-            // Validação de salvamento
-            setTimeout(function() {
-                const check = loadDepartments();
-                console.log('[DEPT] Departamentos após adicionar:', check.length);
-                if (check.some(d => d.id === newDept.id && d.nome === name)) {
-                    showToast('Departamento adicionado!', 'success');
-                } else {
-                    showToast('Erro ao salvar departamento', 'error');
-                }
-            }, 200);
-            
-            document.getElementById('dept-name').value = '';
-            document.getElementById('dept-desc').value = '';
+            addDepartment(name, desc).then(() => {
+                if (nameInput) nameInput.value = '';
+                if (descInput) descInput.value = '';
+            });
+        };
+    }
+    
+    try { 
+        renderDepartments();
+        console.log('[DEPT] Departamentos renderizados com sucesso');
+    } catch(e) { 
+        console.error('Erro ao renderizar departamentos:', e); 
+    }
+}           document.getElementById('dept-desc').value = '';
         };
     }
     

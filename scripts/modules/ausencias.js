@@ -9,31 +9,24 @@ console.log('📋 Arquivo ausencias.js carregado!');
  * Salva ausência (falta ou feriado)
  */
 function saveAbsence(employeeId, date, type) {
-    // type: 'falta' ou 'feriado'
-    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
-    
-    // Remover se já existe
-    const filtered = absences.filter(a => !(a.employeeId == employeeId && a.date === date));
-    
-    // Gerar UUID para compatibilidade com Supabase
-    const absenceId = 'aus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    // Adicionar nova ausência
     const newAbsence = {
-        id: absenceId,
+        id: 'aus_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9),
         employeeId: Number(employeeId),
         date: date,
         type: type // 'falta' ou 'feriado'
     };
-    filtered.push(newAbsence);
-    
-    localStorage.setItem('topservice_ausencias_v1', JSON.stringify(filtered));
-    console.log(`✅ Ausência salva: ${type} para funcionário ${employeeId} em ${date}`);
-    
-    // ☁️ SINCRONIZAR COM SUPABASE
+
     if (window.supabaseRealtime && window.supabaseRealtime.insert) {
         console.log('☁️ Enviando ausência para Supabase...');
-        window.supabaseRealtime.insert('ausencias', newAbsence);
+        return window.supabaseRealtime.insert('ausencias', newAbsence)
+            .catch(err => {
+                console.error('❌ Erro ao salvar ausência via Supabase:', err);
+                throw err;
+            });
+    } else {
+        // Fallback foi removido pois a aplicação agora depende do Supabase.
+        console.error('Supabase não está disponível. Não foi possível salvar a ausência.');
+        return Promise.reject('Supabase not available');
     }
 }
 
@@ -41,19 +34,25 @@ function saveAbsence(employeeId, date, type) {
  * Remove ausência
  */
 function removeAbsence(employeeId, date) {
-    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
-    
-    // Encontrar a ausência para obter o ID antes de remover
+    const absences = (window.supabaseRealtime && window.supabaseRealtime.data.ausencias) || [];
     const absenceToRemove = absences.find(a => a.employeeId == employeeId && a.date === date);
-    
-    const filtered = absences.filter(a => !(a.employeeId == employeeId && a.date === date));
-    localStorage.setItem('topservice_ausencias_v1', JSON.stringify(filtered));
-    console.log(`🗑️ Ausência removida para funcionário ${employeeId} em ${date}`);
-    
-    // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
-    if (absenceToRemove && window.supabaseRealtime && window.supabaseRealtime.remove) {
+
+    if (!absenceToRemove) {
+        console.warn(`Ausência não encontrada para remoção: func ${employeeId} em ${date}`);
+        return Promise.resolve();
+    }
+
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
         console.log('🗑️ Removendo ausência do Supabase...');
-        window.supabaseRealtime.remove('ausencias', absenceToRemove.id);
+        return window.supabaseRealtime.remove('ausencias', absenceToRemove.id)
+            .catch(err => {
+                console.error('❌ Erro ao remover ausência via Supabase:', err);
+                throw err;
+            });
+    } else {
+        // Fallback foi removido.
+        console.error('Supabase não está disponível. Não foi possível remover a ausência.');
+        return Promise.reject('Supabase not available');
     }
 }
 
@@ -61,7 +60,7 @@ function removeAbsence(employeeId, date) {
  * Obtém ausência de um dia específico
  */
 function getAbsenceForDay(employeeId, date) {
-    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
+    const absences = (window.supabaseRealtime && window.supabaseRealtime.data.ausencias) || [];
     return absences.find(a => a.employeeId == employeeId && a.date === date);
 }
 
@@ -69,7 +68,7 @@ function getAbsenceForDay(employeeId, date) {
  * Obtém todas as ausências de um funcionário
  */
 function getAbsencesByEmployee(employeeId, startDate = null, endDate = null) {
-    const absences = JSON.parse(localStorage.getItem('topservice_ausencias_v1') || '[]');
+    const absences = (window.supabaseRealtime && window.supabaseRealtime.data.ausencias) || [];
     let filtered = absences.filter(a => a.employeeId == employeeId);
     
     if (startDate && endDate) {
@@ -91,22 +90,24 @@ function countAbsencesByType(employeeId, type, startDate, endDate) {
  * Marca ausência rapidamente (falta, feriado ou folga) sem abrir modal
  */
 function markAbsenceQuick(employeeId, date, type, currentAbsenceType = '') {
-    // Se já existe a mesma ausência, remover
-    if (currentAbsenceType === type) {
-        removeAbsence(employeeId, date);
-        const typeLabel = type === 'falta' ? 'Falta' : type === 'feriado' ? 'Feriado' : 'Folga';
-        showToast(`${typeLabel} removida com sucesso!`, 'success');
-    } else {
-        // Salvar nova ausência
-        saveAbsence(employeeId, date, type);
-        const typeLabel = type === 'falta' ? 'Falta' : type === 'feriado' ? 'Feriado' : 'Folga';
-        showToast(`${typeLabel} marcada com sucesso!`, 'success');
-    }
-    
-    // Atualizar tabela
-    if (typeof refreshPunchTable === 'function') {
-        refreshPunchTable();
-    }
+    const actionPromise = currentAbsenceType === type
+        ? removeAbsence(employeeId, date)
+        : saveAbsence(employeeId, date, type);
+
+    const typeLabel = type === 'falta' ? 'Falta' : type === 'feriado' ? 'Feriado' : 'Folga';
+    const actionLabel = currentAbsenceType === type ? 'removida' : 'marcada';
+
+    actionPromise
+        .then(() => {
+            showToast(`${typeLabel} ${actionLabel} com sucesso!`, 'success');
+            if (typeof refreshPunchTable === 'function') {
+                refreshPunchTable();
+            }
+        })
+        .catch(err => {
+            console.error(`Erro ao marcar/remover ausência rápida:`, err);
+            showToast(`Erro ao ${currentAbsenceType === type ? 'remover' : 'marcar'} ${typeLabel}.`, 'error');
+        });
 }
 
 /**
@@ -119,7 +120,7 @@ function openMarkAbsenceModal(employeeId, dateStr, currentAbsence = null) {
     const displayDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2])).toLocaleDateString('pt-BR');
     
     // Buscar nome do funcionário
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
     const emp = employees.find(e => e.id == employeeId);
     const empName = emp ? emp.nome : `Funcionário ${employeeId}`;
     
@@ -157,21 +158,25 @@ function openMarkAbsenceModal(employeeId, dateStr, currentAbsence = null) {
     const modalDiv = document.createElement('div');
     modalDiv.innerHTML = html;
     const modal = modalDiv.firstElementChild;
-    document.body.appendChild(modal);
-    
     // Event listeners
     modal.querySelector('.btn-falta').addEventListener('click', () => {
-        saveAbsence(employeeId, dateStr, 'falta');
-        modal.remove();
-        showToast('Falta marcada com sucesso!', 'success');
-        refreshPunchTable();
+        saveAbsence(employeeId, dateStr, 'falta')
+            .then(() => {
+                modal.remove();
+                showToast('Falta marcada com sucesso!', 'success');
+                if (typeof refreshPunchTable === 'function') refreshPunchTable();
+            })
+            .catch(() => showToast('Erro ao marcar falta.', 'error'));
     });
     
     modal.querySelector('.btn-feriado').addEventListener('click', () => {
-        saveAbsence(employeeId, dateStr, 'feriado');
-        modal.remove();
-        showToast('Feriado marcado com sucesso!', 'success');
-        refreshPunchTable();
+        saveAbsence(employeeId, dateStr, 'feriado')
+            .then(() => {
+                modal.remove();
+                showToast('Feriado marcado com sucesso!', 'success');
+                if (typeof refreshPunchTable === 'function') refreshPunchTable();
+            })
+            .catch(() => showToast('Erro ao marcar feriado.', 'error'));
     });
     
     modal.querySelector('.btn-cancel').addEventListener('click', () => {
@@ -180,10 +185,16 @@ function openMarkAbsenceModal(employeeId, dateStr, currentAbsence = null) {
     
     if (currentAbsence) {
         modal.querySelector('.btn-remove').addEventListener('click', () => {
-            removeAbsence(employeeId, dateStr);
-            modal.remove();
-            showToast(`${currentAbsence.type === 'falta' ? 'Falta' : 'Feriado'} removida com sucesso!`, 'success');
-            refreshPunchTable();
+            removeAbsence(employeeId, dateStr)
+                .then(() => {
+                    modal.remove();
+                    const typeLabel = currentAbsence.type === 'falta' ? 'Falta' : 'Feriado';
+                    showToast(`${typeLabel} removida com sucesso!`, 'success');
+                    if (typeof refreshPunchTable === 'function') refreshPunchTable();
+                })
+                .catch(() => showToast('Erro ao remover ausência.', 'error'));
+        });
+    }       refreshPunchTable();
         });
     }
     

@@ -72,8 +72,8 @@ testAdiantamentos();
 console.log('\n=== DADOS REAIS NO LOCALSTORAGE ===\n');
 
 try {
-    const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+    const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
     
     console.log(`📊 Total de Pontos: ${punches.length}`);
     console.log(`👥 Total de Funcionários: ${employees.length}\n`);

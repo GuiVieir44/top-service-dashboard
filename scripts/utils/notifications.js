@@ -8,94 +8,95 @@ console.log('🔔 Notificações: Sistema carregado');
  * Registra uma notificação no sistema
  */
 function logNotification(message, type = 'info', actionData = null) {
-    const notifications = JSON.parse(localStorage.getItem('topservice_notifications_v1') || '[]');
-    
-    // Adicionar ícone corporativo baseado no tipo
-    const icons = {
-        'info': '▸',
-        'warning': '⚠',
-        'error': '✕',
-        'success': '✓'
-    };
-    
-    const notification = {
-        id: Date.now(),
-        message: `${icons[type]} ${message}`,
-        plainMessage: message,
+    const newNotification = {
+        id: 'notif_' + Date.now(),
+        message: message,
         type: type,
         timestamp: new Date().toISOString(),
         read: false,
         action: actionData
     };
-    
-    notifications.unshift(notification);
-    if (notifications.length > 50) {
-        notifications.pop();
+
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        window.supabaseRealtime.insert('notifications', newNotification)
+            .catch(err => console.error('Erro ao logar notificação no Supabase:', err));
+    } else {
+        // Fallback removido
+        console.error('Supabase não disponível. Notificação não registrada.');
     }
     
-    localStorage.setItem('topservice_notifications_v1', JSON.stringify(notifications));
-    return notification;
+    updateNotificationBadge();
+    return newNotification;
 }
 
 /**
  * Obtém todas as notificações
  */
 function getNotifications(unreadOnly = false) {
-    let notifications = JSON.parse(localStorage.getItem('topservice_notifications_v1') || '[]');
+    let notifications = (window.supabaseRealtime && window.supabaseRealtime.data.notifications) || [];
     
     if (unreadOnly) {
         notifications = notifications.filter(n => !n.read);
     }
     
-    return notifications;
+    return notifications.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 }
 
 /**
  * Marca uma notificação como lida
  */
 function markNotificationAsRead(id) {
-    const notifications = JSON.parse(localStorage.getItem('topservice_notifications_v1') || '[]');
-    const notification = notifications.find(n => n.id === id);
-    
-    if (notification) {
-        notification.read = true;
-        localStorage.setItem('topservice_notifications_v1', JSON.stringify(notifications));
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        window.supabaseRealtime.update('notifications', id, { read: true })
+            .catch(err => console.error('Erro ao marcar notificação como lida no Supabase:', err));
+    } else {
+        // Fallback removido
+        console.error('Supabase não disponível. Não foi possível marcar como lida.');
     }
 }
 
-/**
- * Marca TODAS as notificações como lidas
- */
-function marcarTodasComoLidas(modalId) {
-    const notifications = JSON.parse(localStorage.getItem('topservice_notifications_v1') || '[]');
-    notifications.forEach(n => {
-        n.read = true;
-    });
-    localStorage.setItem('topservice_notifications_v1', JSON.stringify(notifications));
-    
-    // Recarregar o modal
-    if (modalId) {
+async function marcarTodasComoLidas(modalId) {
+    const unreadNotifications = getNotifications(true);
+    if (unreadNotifications.length === 0) return;
+
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        const updates = unreadNotifications.map(n => 
+            window.supabaseRealtime.update('notifications', n.id, { read: true })
+        );
+        await Promise.all(updates).catch(err => console.error("Erro ao marcar todas como lidas:", err));
+    } else {
+        // Fallback removido
+        console.error('Supabase não disponível. Não foi possível marcar todas como lidas.');
+    }
+
+    if (modalId && document.getElementById(modalId)) {
         document.getElementById(modalId).remove();
     }
     showNotificationsCenter(1);
-}
+}   // Recarregar o modal
+    if (modalId) {
+async function clearReadNotifications() {
+    const readNotifications = getNotifications().filter(n => n.read);
+    if (readNotifications.length === 0) return;
 
-/**
- * Limpa todas as notificações lidas
- */
-function clearReadNotifications() {
-    let notifications = JSON.parse(localStorage.getItem('topservice_notifications_v1') || '[]');
-    notifications = notifications.filter(n => !n.read);
-    localStorage.setItem('topservice_notifications_v1', JSON.stringify(notifications));
+    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
+        const deletions = readNotifications.map(n => 
+            window.supabaseRealtime.remove('notifications', n.id)
+        );
+        await Promise.all(deletions).catch(err => console.error("Erro ao limpar notificações lidas:", err));
+    } else {
+        // Fallback removido
+        console.error('Supabase não disponível. Não foi possível limpar notificações.');
+    }
 }
 
 /**
  * Verifica e gera notificações automáticas
  */
 function checkAndGenerateNotifications() {
-    const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-    const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-    const afastamentos = JSON.parse(localStorage.getItem('topservice_afastamentos_v1') || '[]');
+    const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
+    const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
+    const afastamentos = (window.supabaseRealtime && window.supabaseRealtime.data.afastamentos) || [];
     
     // Notificação 1: Funcionários sem ponto hoje
     const today = new Date().toISOString().split('T')[0];
@@ -192,12 +193,12 @@ function showNotificationsCenter(page = 1) {
                 <div class="notification-item" data-id="${n.id}" style="padding: 15px; border-left: 4px solid ${typeColors[n.type]}; background: var(--bg-tertiary); margin-bottom: 10px; border-radius: 6px; ${readStyle}">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                         <div style="flex: 1;">
-                            <p style="margin: 0 0 5px 0; color: var(--text-primary);">${n.plainMessage || n.message}</p>
+                            <p style="margin: 0 0 5px 0; color: var(--text-primary);">${n.message}</p>
                             <small style="color: var(--text-tertiary);">${timeStr}</small>
                         </div>
                         <div style="display: flex; gap: 5px;">
-                            ${n.action ? `<button class="btn btn-secondary" onclick="navegarParaNotificacao(${n.id})" style="font-size:0.8rem;padding:4px 8px;white-space:nowrap;">Ir Para</button>` : ''}
-                            <button class="btn ${n.read ? 'btn-ghost' : 'btn-primary'}" onclick="marcarComoLida(${n.id}, '${modalId}')" style="font-size:0.8rem;padding:4px 8px;white-space:nowrap;">${n.read ? 'Lida' : 'Marcar'}</button>
+                            ${n.action ? `<button class="btn btn-secondary" onclick="navegarParaNotificacao('${n.id}')" style="font-size:0.8rem;padding:4px 8px;white-space:nowrap;">Ir Para</button>` : ''}
+                            <button class="btn ${n.read ? 'btn-ghost' : 'btn-primary'}" onclick="marcarComoLida('${n.id}', '${modalId}')" style="font-size:0.8rem;padding:4px 8px;white-space:nowrap;">${n.read ? 'Lida' : 'Marcar'}</button>
                         </div>
                     </div>
                 </div>
@@ -253,9 +254,9 @@ function marcarComoLida(notificationId, modalId = null) {
  * Limpa notificações lidas
  */
 function limparNotificacoesLidas() {
-    clearReadNotifications();
-    updateNotificationBadge();
-    showNotificationsCenter(1);
+    clearReadNotifications()
+        .then(() => showNotificationsCenter(1))
+        .catch(err => console.error("Erro ao limpar notificações:", err));
 }
 
 /**
@@ -273,7 +274,6 @@ function navegarParaNotificacao(notificationId) {
     modals.forEach(m => m.remove());
     
     markNotificationAsRead(notificationId);
-    updateNotificationBadge();
     
     const action = notification.action;
     
@@ -368,15 +368,18 @@ function createNotificationButton() {
  * Inicializa sistema de notificações
  */
 function initNotificationsSystem() {
+function initNotificationsSystem() {
     console.log('🔔 Iniciando sistema de notificações...');
     try {
-        checkAndGenerateNotifications();
         createNotificationButton();
         updateNotificationBadge();
         
+        // Listen for real-time updates
+        window.addEventListener('notifications-updated', updateNotificationBadge);
+
+        // Check for new notifications periodically
         setInterval(() => {
             checkAndGenerateNotifications();
-            updateNotificationBadge();
         }, 5 * 60 * 1000);
         
         console.log('✅ Sistema de notificações ativado');
@@ -384,7 +387,6 @@ function initNotificationsSystem() {
         console.error('❌ Erro ao inicializar notificações:', e);
     }
 }
-
 // Inicializa quando document estiver pronto
 if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initNotificationsSystem);

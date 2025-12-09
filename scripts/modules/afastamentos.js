@@ -41,98 +41,91 @@ function performSaveAfastamentos(list) {
 }
 
 function loadAfastamentos() {
-    try {
-        return JSON.parse(localStorage.getItem(AFAST_KEY) || '[]');
-    } catch (e) {
-        console.error('Erro ao carregar afastamentos:', e);
-        return [];
-    }
+    return (window.supabaseRealtime && window.supabaseRealtime.data.afastamentos) || [];
 }
 
 function saveAfastamentos(list) {
-    // Usar debounce
-    scheduleSaveAfastamentos(list);
+    // Deprecated: Data is now saved via Supabase.
 }
 
 function addAfastamento(data) {
-    // Validação básica de dados obrigatórios
     if (!data.employeeId || !data.type || !data.start || !data.end) {
-        console.warn('[AFAST] ❌ Dados obrigatórios faltando:', data);
-        return false;
+        showToast('Dados obrigatórios faltando.', 'warning');
+        return Promise.reject('Dados obrigatórios faltando');
     }
-    
-    var list = loadAfastamentos();
-    // Gerar UUID para compatibilidade com Supabase
+
     data.id = 'afast_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    list.push(data);
-    
-    try {
+
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando afastamento para Supabase...');
+        return window.supabaseRealtime.insert('afastamentos', data)
+            .then(result => {
+                renderAfastamentos();
+                return result;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao adicionar afastamento via Supabase:', err);
+                throw err;
+            });
+    } else {
+        // Fallback
+        const list = loadAfastamentos();
+        list.push(data);
         saveAfastamentos(list);
-        // Validação pós-salvamento
-        var saved = loadAfastamentos();
-        if (saved.some(a => a.id === data.id)) {
-            console.log('%c[AFAST] ✅ Afastamento registrado e validado', 'color: #27ae60;', data.id);
-            
-            // ☁️ SINCRONIZAR COM SUPABASE
-            if (window.supabaseRealtime && window.supabaseRealtime.insert) {
-                console.log('☁️ Enviando afastamento para Supabase...');
-                window.supabaseRealtime.insert('afastamentos', data);
-            }
-        } else {
-            console.warn('%c[AFAST] ⚠️  Falha na validação de salvamento', 'color: #f39c12;');
-        }
-    } catch (e) {
-        console.error('[AFAST] ❌ Erro ao adicionar afastamento:', e);
-        return false;
+        renderAfastamentos();
+        return Promise.resolve(data);
     }
-    
-    renderAfastamentos();
-    // Persistence.js já salva a cada 3s
-    setTimeout(() => saveAfastamentos(list), 100);
-    return true;
 }
 
 function deleteAfastamento(id) {
     if (!confirm('Confirma remoção deste afastamento?')) return;
-    // Converter para string para comparação consistente
-    var idStr = String(id);
-    var list = loadAfastamentos().filter(function(a){ return String(a.id) !== idStr; });
-    saveAfastamentos(list);
-    
-    // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
+
     if (window.supabaseRealtime && window.supabaseRealtime.remove) {
         console.log('🗑️ Removendo afastamento do Supabase...');
-        window.supabaseRealtime.remove('afastamentos', id);
+        window.supabaseRealtime.remove('afastamentos', id)
+            .then(() => {
+                renderAfastamentos();
+            })
+            .catch(err => {
+                console.error('❌ Erro ao remover afastamento via Supabase:', err);
+            });
+    } else {
+        // Fallback
+        const idStr = String(id);
+        const list = loadAfastamentos().filter(a => String(a.id) !== idStr);
+        // saveAfastamentos(list); // Deprecated
+        renderAfastamentos();
     }
-    
-    // Garantir persistência
-    setTimeout(() => saveAfastamentos(list), 100);
-    renderAfastamentos();
 }
 
-// NOVA FUNÇÃO: Atualizar afastamento
 function updateAfastamento(id, newData) {
-    var list = loadAfastamentos();
-    var idStr = String(id);
-    var index = list.findIndex(function(a) { return String(a.id) === idStr; });
-    
-    if (index === -1) {
-        console.warn('[AFAST] Afastamento não encontrado para edição:', id);
-        return null;
-    }
-    
-    // Atualizar dados mantendo o ID
-    list[index] = { ...list[index], ...newData, id: list[index].id };
-    
-    saveAfastamentos(list);
-    renderAfastamentos();
-    
-    // ☁️ SINCRONIZAR COM SUPABASE
     if (window.supabaseRealtime && window.supabaseRealtime.update) {
         console.log('☁️ Atualizando afastamento no Supabase...');
-        window.supabaseRealtime.update('afastamentos', id, list[index]);
+        return window.supabaseRealtime.update('afastamentos', id, newData)
+            .then(updated => {
+                renderAfastamentos();
+                return updated;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao atualizar afastamento via Supabase:', err);
+                throw err;
+            });
+    } else {
+        // Fallback
+        const list = loadAfastamentos();
+        const idStr = String(id);
+        const index = list.findIndex(a => String(a.id) === idStr);
+
+        if (index === -1) {
+            return Promise.reject('Afastamento não encontrado');
+        }
+
+        list[index] = { ...list[index], ...newData };
+        saveAfastamentos(list);
+        renderAfastamentos();
+        return Promise.resolve(list[index]);
     }
-    
+}   
     console.log('[AFAST] ✅ Afastamento atualizado:', list[index]);
     return list[index];
 }
@@ -212,7 +205,6 @@ function openEditAfastamentoModal(id) {
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 }
 
-// NOVA FUNÇÃO: Salvar edição de afastamento
 function saveEditAfastamento(id) {
     var newData = {
         employeeId: document.getElementById('edit-afast-emp').value,
@@ -226,11 +218,18 @@ function saveEditAfastamento(id) {
         return;
     }
     
-    var updated = updateAfastamento(id, newData);
-    if (updated) {
-        showToast('Afastamento atualizado!', 'success');
-        document.getElementById('modal-edit-afast').remove();
-    } else {
+    updateAfastamento(id, newData)
+        .then(updated => {
+            if (updated) {
+                showToast('Afastamento atualizado!', 'success');
+                const modal = document.getElementById('modal-edit-afast');
+                if (modal) modal.remove();
+            }
+        })
+        .catch(() => {
+            showToast('Erro ao atualizar afastamento', 'error');
+        });
+}   } else {
         showToast('Erro ao atualizar afastamento', 'error');
     }
 }
@@ -310,34 +309,33 @@ function setupAfastamentosButtonHandler() {
     }
     if (daysInput) {
         daysInput.addEventListener('change', calcularDataFinal);
-        daysInput.addEventListener('input', calcularDataFinal);
-    }
-    
-    // Handler do botão Adicionar
-    var btn = document.getElementById('afast-add-btn');
-    if (btn) {
-        console.log('[AFAST] Botão encontrado, atribuindo onclick');
         btn.onclick = function(){
             console.log('[AFAST] onClick acionado');
             var empSelect = document.getElementById('afast-employee-select');
-            var empId = empSelect ? parseInt(empSelect.value, 10) || 0 : 0;
+            var empId = empSelect?.value;
             var typeEl = document.getElementById('afast-type');
-            var type = typeEl ? typeEl.value || 'Outro' : 'Outro';
+            var type = typeEl?.value || 'Outro';
             var startEl = document.getElementById('afast-start');
             var endEl = document.getElementById('afast-end');
-            var start = startEl ? startEl.value || '' : '';
-            var end = endEl ? endEl.value || '' : '';
-            console.log('[AFAST] Dados:', { empId, type, start, end });
+            var start = startEl?.value || '';
+            var end = endEl?.value || '';
+            
             if (!empId) { showToast('Selecione um funcionário.', 'warning'); return; }
             if (!start || !end) { showToast('Preencha período de afastamento.', 'warning'); return; }
-            try {
-                console.log('[AFAST] Chamando addAfastamento...');
-                addAfastamento({ employeeId: empId, type: type, start: start, end: end });
-                showToast('Afastamento adicionado com sucesso!', 'success');
-                // Limpar campos
-                document.getElementById('afast-start').value = '';
-                document.getElementById('afast-days').value = '1';
-                document.getElementById('afast-end').value = '';
+
+            addAfastamento({ employeeId: empId, type: type, start: start, end: end })
+                .then(() => {
+                    showToast('Afastamento adicionado com sucesso!', 'success');
+                    if (startEl) startEl.value = '';
+                    if (document.getElementById('afast-days')) document.getElementById('afast-days').value = '1';
+                    if (endEl) endEl.value = '';
+                    if (typeEl) typeEl.value = 'Férias';
+                })
+                .catch(err => {
+                    console.error('[AFAST] Erro ao adicionar afastamento:', err);
+                    showToast('Erro ao adicionar afastamento. Veja console.', 'error'); 
+                });
+        };      document.getElementById('afast-end').value = '';
                 document.getElementById('afast-type').value = 'Férias';
                 console.log('[AFAST] Afastamento adicionado com sucesso');
             } catch (e) { 

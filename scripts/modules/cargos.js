@@ -13,36 +13,23 @@ let cargos = [];
  * Inicializa os cargos do sistema
  */
 function initializeCargosData() {
-    try {
-        const stored = localStorage.getItem(CARGOS_KEY);
-        cargos = stored ? JSON.parse(stored) : [...defaultCargos];
-        localStorage.setItem(CARGOS_KEY, JSON.stringify(cargos));
-    } catch (e) {
-        console.error('Erro ao carregar cargos:', e);
-        cargos = [...defaultCargos];
-    }
+    cargos = (window.supabaseRealtime && window.supabaseRealtime.data.cargos) || [...defaultCargos];
 }
 
 /**
  * Salva cargos no localStorage
  */
 function saveCargos() {
-    try {
-        localStorage.setItem(CARGOS_KEY, JSON.stringify(cargos));
-    } catch (e) {
-        console.error('Erro ao salvar cargos:', e);
-    }
+    // Deprecated: Data is now saved via Supabase.
+    // This function can be used for fallback if needed.
 }
 
 /**
  * Obtém todos os cargos
  */
 function getCargos() {
-    return [...cargos];
-}
-
-/**
- * Obtém cargo por ID
+    return (window.supabaseRealtime && window.supabaseRealtime.data.cargos) || cargos;
+}* Obtém cargo por ID
  */
 function getCargoById(id) {
     return cargos.find(c => String(c.id) === String(id)) || null;
@@ -60,117 +47,94 @@ function getCargoByName(nome) {
  */
 function addCargo(nome, horasDia) {
     if (!nome || !horasDia || horasDia <= 0) {
-        console.warn('Nome e horas do dia são obrigatórios');
-        return null;
+        showToast('Nome e horas do dia são obrigatórios', 'warning');
+function addCargo(nome, horasDia) {
+    if (!nome || !horasDia || horasDia <= 0) {
+        showToast('Nome e horas do dia são obrigatórios', 'warning');
+        return Promise.reject('Dados inválidos');
     }
 
-    if (getCargoByName(nome)) {
-        console.warn('Cargo já existe');
-        return null;
+    if (getCargos().find(c => c.nome.toLowerCase() === nome.toLowerCase())) {
+        showToast('Cargo já existe', 'warning');
+        return Promise.reject('Cargo já existe');
     }
 
-    // Gerar UUID para compatibilidade com Supabase
     const newId = 'cargo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    // Permite informar banco de horas ao criar
-    let bancoHoras = 0;
-    if (window.promptBancoHoras) {
-        bancoHoras = window.promptBancoHoras();
-    }
-    const cargo = { id: newId, nome, horasDia: Number(horasDia), bancoHoras: Number(bancoHoras) };
-    
-    cargos.push(cargo);
-    saveCargos();
-    
-    // Sincronizar com Supabase
+    const cargo = { id: newId, nome, horasDia: Number(horasDia), bancoHoras: 0 };
+
     if (window.supabaseRealtime && window.supabaseRealtime.insert) {
         console.log('☁️ Enviando cargo para Supabase...');
-        window.supabaseRealtime.insert('cargos', cargo);
+        return window.supabaseRealtime.insert('cargos', cargo);
+    } else {
+        // Fallback
+        cargos.push(cargo);
+        saveCargos();
+        renderCargos();
+        return Promise.resolve(cargo);
     }
-    
-    return cargo;
-}
-
-/**
- * Atualiza cargo
+}* Atualiza cargo
  */
 function updateCargo(id, nome, horasDia) {
-    // Comparação com string para compatibilidade
     const index = cargos.findIndex(c => String(c.id) === String(id));
     if (index === -1) {
-        console.warn('Cargo não encontrado');
-        return null;
+        return Promise.reject('Cargo não encontrado');
     }
 
-    let bancoHoras = cargos[index].bancoHoras;
-    if (window.promptBancoHoras) {
-        bancoHoras = window.promptBancoHoras(cargos[index].bancoHoras);
-    }
-    cargos[index] = { ...cargos[index], nome, horasDia: Number(horasDia), bancoHoras: Number(bancoHoras) };
-    saveCargos();
-    
-    // Sincronizar com Supabase
+    const updatedCargo = { ...cargos[index], nome, horasDia: Number(horasDia) };
+
     if (window.supabaseRealtime && window.supabaseRealtime.update) {
         console.log('☁️ Atualizando cargo no Supabase...');
-        window.supabaseRealtime.update('cargos', id, cargos[index]);
-    }
-    
-    return cargos[index];
-}
+        return window.supabaseRealtime.update('cargos', id, updatedCargo)
+function updateCargo(id, nome, horasDia) {
+    const updatedCargo = { nome, horasDia: Number(horasDia) };
 
-/**
- * Deleta cargo
- */
+    if (window.supabaseRealtime && window.supabaseRealtime.update) {
+        console.log('☁️ Atualizando cargo no Supabase...');
+        return window.supabaseRealtime.update('cargos', id, updatedCargo);
+    } else {
+        // Fallback
+        const index = cargos.findIndex(c => String(c.id) === String(id));
+        if (index === -1) return Promise.reject('Cargo não encontrado');
+        cargos[index] = { ...cargos[index], ...updatedCargo };
+        saveCargos();
+        renderCargos();
+        return Promise.resolve(cargos[index]);
+    }
+}       return window.supabaseRealtime.remove('cargos', id)
+            .then(() => {
+                cargos.splice(index, 1);
+                saveCargos();
+                return true;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao remover cargo via Supabase:', err);
+                throw err;
+            });
+    } else {
+        // Fallback
+        cargos.splice(index, 1);
+        saveCargos();
+        return Promise.resolve(true);
+    }
 function deleteCargo(id) {
-    // Comparação com string para compatibilidade
-    const index = cargos.findIndex(c => String(c.id) === String(id));
-    if (index === -1) return false;
-    
-    cargos.splice(index, 1);
-    saveCargos();
-    
-    // Sincronizar com Supabase
     if (window.supabaseRealtime && window.supabaseRealtime.remove) {
         console.log('🗑️ Removendo cargo do Supabase...');
-        window.supabaseRealtime.remove('cargos', id);
+        return window.supabaseRealtime.remove('cargos', id);
+    } else {
+        // Fallback
+        const index = cargos.findIndex(c => String(c.id) === String(id));
+        if (index === -1) return Promise.resolve(false);
+        cargos.splice(index, 1);
+        saveCargos();
+        renderCargos();
+        return Promise.resolve(true);
     }
-    
-    return true;
-}
-
-/**
- * Renderiza lista de cargos
- */
-function renderCargos() {
-    const tbody = document.getElementById('cargo-list-body');
-    if (!tbody) return;
-
-    tbody.innerHTML = '';
-
-    if (cargos.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">Nenhum cargo cadastrado.</td></tr>';
-        return;
-    }
-
-    cargos.forEach(cargo => {
-        const cargoIdLiteral = String(cargo.id).replace(/'/g, "\\'");
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td style="padding:10px;border:1px solid #e6e6e6;">${cargo.nome}</td>
-            <td style="padding:10px;border:1px solid #e6e6e6;">${cargo.horasDia}h</td>
-            <td style="padding:10px;border:1px solid #e6e6e6;color:#2ecc71;font-weight:bold;">${cargo.bancoHoras >= 0 ? '+' : ''}${cargo.bancoHoras}h</td>
+}           <td style="padding:10px;border:1px solid #e6e6e6;color:#2ecc71;font-weight:bold;">${cargo.bancoHoras >= 0 ? '+' : ''}${cargo.bancoHoras}h</td>
             <td style="padding:10px;border:1px solid #e6e6e6;text-align:center;">
                 <button onclick="editCargoModal('${cargoIdLiteral}')" style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:5px;">Editar</button>
                 <button onclick="deletCargoConfirm('${cargoIdLiteral}')" style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;">Excluir</button>
             </td>
         `;
-        tbody.appendChild(tr);
-    });
-}
-
-/**
- * Mostra modal para editar cargo
- */
 function editCargoModal(id) {
     const cargo = getCargoById(id);
     if (!cargo) return;
@@ -179,43 +143,80 @@ function editCargoModal(id) {
     if (!novoNome) return;
 
     const novasHoras = prompt('Horas por dia:', cargo.horasDia);
-    if (!novasHoras) return;
+function renderCargos() {
+    const tbody = document.getElementById('cargo-list-body');
+    if (!tbody) return;
 
-    // Prompt para banco de horas
-    window.promptBancoHoras = function(current = 0) {
-        let val = prompt('Banco de horas inicial (pode ser negativo, ex: -5):', current);
-        if (val === null || val === '') return current;
-        if (isNaN(val)) return current;
-        return Number(val);
-    };
+    const currentCargos = getCargos();
+    tbody.innerHTML = '';
 
-    updateCargo(id, novoNome, novasHoras);
-    renderCargos();
-    showToast('Cargo atualizado!', 'success');
-}
+    if (currentCargos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:20px;color:#999;">Nenhum cargo cadastrado.</td></tr>';
+        return;
+    }
 
-/**
- * Confirma deleção de cargo
- */
-function deletCargoConfirm(id) {
+    currentCargos.forEach(cargo => {
+        const cargoIdLiteral = String(cargo.id).replace(/'/g, "\\'");
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td style="padding:10px;border:1px solid #e6e6e6;">${cargo.nome}</td>
+            <td style="padding:10px;border:1px solid #e6e6e6;">${cargo.horasDia}h</td>
+            <td style="padding:10px;border:1px solid #e6e6e6;color:#2ecc71;font-weight:bold;">${(cargo.bancoHoras || 0) >= 0 ? '+' : ''}${cargo.bancoHoras || 0}h</td>
+            <td style="padding:10px;border:1px solid #e6e6e6;text-align:center;">
+                <button onclick="editCargoModal('${cargoIdLiteral}')" style="background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:5px;">Editar</button>
+                <button onclick="deletCargoConfirm('${cargoIdLiteral}')" style="background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;">Excluir</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}eletCargoConfirm(id) {
     if (!confirm('Confirma exclusão deste cargo?')) return;
     deleteCargo(id);
-    renderCargos();
-    showToast('Cargo removido!', 'success');
-}
-
-/**
- * Inicializa o módulo de cargos
- */
+function deletCargoConfirm(id) {
+    if (!confirm('Confirma exclusão deste cargo?')) return;
+    deleteCargo(id)
+        .then(() => {
+            renderCargos();
+            showToast('Cargo removido!', 'success');
+        })
 function initCargosModule() {
     console.log('[CARGOS] Inicializando módulo');
 
-    // Botão adicionar cargo
     const addBtn = document.getElementById('cargo-add-btn');
     if (addBtn) {
         addBtn.onclick = function() {
-            const nome = document.getElementById('cargo-nome')?.value?.trim();
-            const horas = document.getElementById('cargo-horas')?.value?.trim();
+            const nomeInput = document.getElementById('cargo-nome');
+            const horasInput = document.getElementById('cargo-horas');
+            const nome = nomeInput?.value?.trim();
+            const horas = horasInput?.value?.trim();
+
+            if (!nome) {
+                showToast('Nome do cargo é obrigatório.', 'warning');
+                return;
+            }
+            if (!horas || horas <= 0) {
+                showToast('Horas por dia deve ser maior que zero.', 'warning');
+function deletCargoConfirm(id) {
+    if (!confirm('Confirma exclusão deste cargo?')) return;
+    deleteCargo(id)
+        .then(() => {
+            showToast('Cargo removido!', 'success');
+        })
+        .catch(() => {
+            showToast('Erro ao remover cargo.', 'error');
+        });
+}              renderCargos();
+function initCargosModule() {
+    console.log('[CARGOS] Inicializando módulo');
+    initializeCargosData();
+
+    const addBtn = document.getElementById('cargo-add-btn');
+    if (addBtn) {
+        addBtn.onclick = function() {
+            const nomeInput = document.getElementById('cargo-nome');
+            const horasInput = document.getElementById('cargo-horas');
+            const nome = nomeInput?.value?.trim();
+            const horas = horasInput?.value?.trim();
 
             if (!nome) {
                 showToast('Nome do cargo é obrigatório.', 'warning');
@@ -226,57 +227,25 @@ function initCargosModule() {
                 return;
             }
 
-            // Prompt para banco de horas
-            window.promptBancoHoras = function(current = 0) {
-                let val = prompt('Banco de horas inicial (pode ser negativo, ex: -5):', current);
-                if (val === null || val === '') return current;
-                if (isNaN(val)) return current;
-                return Number(val);
-            };
-            const newCargo = addCargo(nome, horas);
-            if (newCargo) {
-                showToast('Cargo adicionado!', 'success');
-                document.getElementById('cargo-nome').value = '';
-                document.getElementById('cargo-horas').value = '8';
-                renderCargos();
-                
-                // Atualizar selects de cargos em outras páginas
-                updateCargoSelects();
-            } else {
-                showToast('Erro ao adicionar cargo.', 'error');
-            }
+            addCargo(nome, horas)
+                .then(newCargo => {
+                    if (newCargo) {
+                        showToast('Cargo adicionado!', 'success');
+                        if (nomeInput) nomeInput.value = '';
+                        if (horasInput) horasInput.value = '8';
+                        updateCargoSelects();
+                    }
+                })
+                .catch(() => {
+                    // O toast de erro já é mostrado dentro do addCargo
+                });
         };
     }
 
     renderCargos();
-}
-
-/**
- * Atualiza todos os selects de cargos nas páginas
- */
-function updateCargoSelects() {
-    const selects = document.querySelectorAll('[data-cargo-select]');
-    selects.forEach(select => {
-        const currentValue = select.value;
-        select.innerHTML = '';
-        
-        const option = document.createElement('option');
-        option.value = '';
-        option.textContent = 'Selecione um cargo';
-        select.appendChild(option);
-
-        getCargos().forEach(cargo => {
-            const opt = document.createElement('option');
-            opt.value = cargo.id;
-            opt.textContent = cargo.nome;
-            select.appendChild(opt);
-        });
-
-        if (currentValue) select.value = currentValue;
-    });
-}
-
-/**
+    // Add a listener for real-time updates
+    window.addEventListener('cargos-updated', renderCargos);
+}**
  * Cria novo cargo a partir do modal no departamento
  */
 function criarCargoModal() {
@@ -296,43 +265,30 @@ function criarCargoModal() {
         return;
     }
 
-    // Verifica se cargo já existe
-    if (getCargoByName(nome)) {
-        showToast('Este cargo já existe no sistema.', 'warning');
-        return;
-    }
-
-    // Cria cargo com banco de horas iniciando em 0
-    const newId = cargos.length > 0 ? Math.max(...cargos.map(c => c.id)) + 1 : 1;
-    const cargo = { 
-        id: newId, 
-        nome: nome, 
-        horasDia: Number(horas), 
-        bancoHoras: 0
-    };
-    
-    cargos.push(cargo);
-    saveCargos();
-    
-    // Fecha o modal de criação
-    const createModal = document.querySelector('.modal-overlay[style*="10000"]');
-    if (createModal) createModal.remove();
-    
-    // Atualiza select no modal de departamentos
-    const cargoSelect = document.getElementById('cargos-dept-cargo-select');
-    if (cargoSelect) {
-        const option = document.createElement('option');
-        option.value = cargo.id;
-        option.textContent = cargo.nome;
-        cargoSelect.appendChild(option);
-        cargoSelect.value = cargo.id;
-    }
-    
-    // Atualiza outros selects
-    updateCargoSelects();
-    
-    showToast('Cargo criado com sucesso!', 'success');
+    addCargo(nome, horas)
+        .then(cargo => {
+            const createModal = document.querySelector('.modal-overlay[style*="10000"]');
+            if (createModal) createModal.remove();
+            
+            const cargoSelect = document.getElementById('cargos-dept-cargo-select');
+            if (cargoSelect) {
+                const option = document.createElement('option');
+                option.value = cargo.id;
+                option.textContent = cargo.nome;
+                cargoSelect.appendChild(option);
+                cargoSelect.value = cargo.id;
+            }
+            
+            updateCargoSelects();
+            showToast('Cargo criado com sucesso!', 'success');
+        })
+        .catch(err => {
+            showToast(err, 'warning');
+        });
 }
 
 // Inicializar dados ao carregar o script
 initializeCargosData();
+// Inicializar dados ao carregar o script
+// initializeCargosData();
+// A inicialização agora é feita dentro de initCargosModule para garantir que ocorra no momento certo.

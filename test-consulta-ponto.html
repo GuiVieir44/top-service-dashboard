@@ -54,8 +54,8 @@
         
         function testStorage() {
             log('\n=== TESTE DE STORAGE ===');
-            const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
-            const depts = JSON.parse(localStorage.getItem('topservice_departamentos_v1') || '[]');
+            const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
+            const depts = (window.supabaseRealtime && window.supabaseRealtime.data.departamentos) || [];
             
             log(`👥 Funcionários no localStorage: ${employees.length}`);
             log(`📊 Departamentos no localStorage: ${depts.length}`);

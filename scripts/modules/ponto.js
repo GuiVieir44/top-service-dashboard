@@ -108,110 +108,94 @@ function calculateTodayAdvancements() {
 }
 
 function registerPunch(employeeId, type, rf = null) {
-    var punches = loadPunches();
-    var now = new Date();
+    const now = new Date();
+    const punchId = 'punch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
     
-    // Gerar UUID para compatibilidade com Supabase
-    var punchId = 'punch_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    
-    var punch = {
+    const punch = {
         id: punchId,
         employeeId: employeeId,
         type: type,
         timestamp: now.toISOString(),
         rf: rf
     };
-    punches.push(punch);
-    
-    try {
+
+    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
+        console.log('☁️ Enviando ponto para Supabase...');
+        return window.supabaseRealtime.insert('punches', punch)
+            .then(result => {
+                console.log('%c[PUNCH] ✅ Ponto registrado via Supabase', 'color: #27ae60;', result);
+                renderPunches(); // A UI será atualizada pelo listener, mas forçamos para feedback imediato
+                return result;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao registrar ponto via Supabase:', err);
+                showToast('Erro ao registrar ponto.', 'error');
+                throw err;
+            });
+    } else {
+        // Fallback
+        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
+        const punches = loadPunches();
+        punches.push(punch);
         savePunches(punches);
-        var saved = loadPunches();
-        if (saved.some(p => p.id === punch.id)) {
-            console.log('%c[PUNCH] ✅ Ponto registrado', 'color: #27ae60;', punch);
-            
-            // ☁️ SINCRONIZAR COM SUPABASE
-            if (window.supabaseRealtime && window.supabaseRealtime.insert) {
-                console.log('☁️ Enviando ponto para Supabase...');
-                window.supabaseRealtime.insert('punches', punch);
-            }
-            
-            // 🔥 RENDERIZAR TABELA IMEDIATAMENTE
-            if (typeof renderPunches === 'function') {
-                renderPunches();
-            }
-            
-            // Atualizar adiantamentos se for entrada
-            if (type === 'Entrada') {
-                console.log('[PUNCH] 🔄 Atualizando análise de dados...');
-                
-                // Atualizar card do dashboard
-                if (typeof updateOverTimeCardWithAdvancements === 'function') {
-                    updateOverTimeCardWithAdvancements();
-                }
-                
-                // Atualizar tabela de análise de dados
-                setTimeout(() => {
-                    const today = new Date();
-                    if (typeof refreshExtrasReportTable === 'function') {
-                        console.log('[PUNCH] 📊 Recarregando tabela de extras...');
-                        refreshExtrasReportTable(today);
-                    }
-                }, 150);
-            }
-        }
-    } catch (e) {
-        console.error('[PUNCH] ❌ Erro:', e);
-        throw e;
+        renderPunches();
+        return Promise.resolve(punch);
     }
-    
-    renderPunches();
-    setTimeout(() => savePunches(punches), 100);
 }
 
 function deletePunch(id) {
     if (!confirm('Confirma exclusão deste registro de ponto?')) return;
-    // Converter para string para comparação consistente
-    var idStr = String(id);
-    var punches = loadPunches().filter(function(p){ return String(p.id) !== idStr; });
-    savePunches(punches);
-    
-    // ☁️ SINCRONIZAR EXCLUSÃO COM SUPABASE
+
     if (window.supabaseRealtime && window.supabaseRealtime.remove) {
         console.log('🗑️ Removendo ponto do Supabase...');
-        window.supabaseRealtime.remove('punches', id);
+        window.supabaseRealtime.remove('punches', id)
+            .then(() => {
+                showToast('Registro excluído!', 'success');
+                renderPunches();
+            })
+            .catch(err => {
+                console.error('❌ Erro ao excluir ponto via Supabase:', err);
+                showToast('Erro ao excluir registro.', 'error');
+            });
+    } else {
+        // Fallback
+        const idStr = String(id);
+        const punches = loadPunches().filter(p => String(p.id) !== idStr);
+        savePunches(punches);
+        renderPunches();
     }
-    
-    // Garantir persistência
-    setTimeout(() => savePunches(punches), 100);
-    renderPunches();
 }
 
 // NOVA FUNÇÃO: Atualizar registro de ponto
 function updatePunch(id, newType, newTimestamp) {
-    var punches = loadPunches();
-    var idStr = String(id);
-    var index = punches.findIndex(function(p) { return String(p.id) === idStr; });
-    
-    if (index === -1) {
-        console.warn('[PUNCH] Registro não encontrado para edição:', id);
-        return null;
-    }
-    
-    // Atualizar dados
-    punches[index].type = newType;
-    punches[index].timestamp = newTimestamp;
-    
-    savePunches(punches);
-    renderPunches();
-    
-    // ☁️ SINCRONIZAR COM SUPABASE
+    const punchData = { type: newType, timestamp: newTimestamp };
+
     if (window.supabaseRealtime && window.supabaseRealtime.update) {
         console.log('☁️ Atualizando ponto no Supabase...');
-        window.supabaseRealtime.update('punches', id, punches[index]);
+        return window.supabaseRealtime.update('punches', id, punchData)
+            .then(updatedPunch => {
+                renderPunches();
+                return updatedPunch;
+            })
+            .catch(err => {
+                console.error('❌ Erro ao atualizar ponto via Supabase:', err);
+                throw err;
+            });
+    } else {
+        // Fallback
+        const punches = loadPunches();
+        const idStr = String(id);
+        const index = punches.findIndex(p => String(p.id) === idStr);
+
+        if (index === -1) {
+            return Promise.reject('Registro não encontrado');
+        }
+
+        punches[index] = { ...punches[index], ...punchData };
+        savePunches(punches);
+        renderPunches();
+        return Promise.resolve(punches[index]);
     }
-    
-    console.log('[PUNCH] ✅ Registro atualizado:', punches[index]);
-    return punches[index];
 }
 
 // NOVA FUNÇÃO: Abrir modal de edição de ponto
@@ -273,10 +257,6 @@ function openEditPunchModal(id) {
         </div>
     `;
     
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
-// NOVA FUNÇÃO: Salvar edição de ponto
 function saveEditPunch(id) {
     var newType = document.getElementById('edit-punch-type').value;
     var newDatetime = document.getElementById('edit-punch-datetime').value;
@@ -286,13 +266,20 @@ function saveEditPunch(id) {
         return;
     }
     
-    // Converter para ISO
     var newTimestamp = new Date(newDatetime).toISOString();
     
-    var updated = updatePunch(id, newType, newTimestamp);
-    if (updated) {
-        showToast('Registro atualizado!', 'success');
-        document.getElementById('modal-edit-punch').remove();
+    updatePunch(id, newType, newTimestamp)
+        .then(updated => {
+            if (updated) {
+                showToast('Registro atualizado!', 'success');
+                const modal = document.getElementById('modal-edit-punch');
+                if (modal) modal.remove();
+            }
+        })
+        .catch(() => {
+            showToast('Erro ao atualizar registro', 'error');
+        });
+}       document.getElementById('modal-edit-punch').remove();
     } else {
         showToast('Erro ao atualizar registro', 'error');
     }
@@ -377,23 +364,24 @@ function initPunchModule() {
         } else {
             select.innerHTML = '<option value="0">Sem funcionários</option>';
         }
-    }
-
-    // Função auxiliar para registrar ponto
     function handlePunchClick(type, rf) {
         var selectEl = document.getElementById('punch-employee-select');
-        var empId = parseInt(selectEl && selectEl.value, 10) || 0;
+        var empId = selectEl?.value;
         
         if (!empId) {
             showToast('Selecione um funcionário antes de registrar o ponto.', 'warning');
             return;
         }
 
-        try {
-            registerPunch(empId, type, rf);
-            showToast(type + ' registrada com sucesso!', 'success');
-        } catch (err) {
-            console.error('Erro ao registrar ponto:', err);
+        registerPunch(empId, type, rf)
+            .then(() => {
+                showToast(type + ' registrada com sucesso!', 'success');
+            })
+            .catch(err => {
+                console.error('Erro ao registrar ponto:', err);
+                showToast('Erro ao registrar ponto.', 'error');
+            });
+    }       console.error('Erro ao registrar ponto:', err);
             showToast('Erro ao registrar ponto.', 'error');
         }
     }

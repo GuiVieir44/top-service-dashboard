@@ -444,8 +444,8 @@
     <!-- DEBUG: Mostrar estado dos dados no console -->
     <script>
         window.debugTopService = function() {
-            const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
-            const employees = JSON.parse(localStorage.getItem('topservice_employees_v1') || '[]');
+            const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
+            const employees = (window.supabaseRealtime && window.supabaseRealtime.data.employees) || [];
             
             console.clear();
             console.log('%c🔍 DEBUG TOP SERVICE', 'color: #3498db; font-size: 16px; font-weight: bold;');
@@ -530,7 +530,7 @@
                 console.log('%c❌ navigationSystem.updateDashboardMetrics não disponível', 'color: #e74c3c; font-weight: bold;');
             }
             
-            const punches = JSON.parse(localStorage.getItem('topservice_punches_v1') || '[]');
+            const punches = (window.supabaseRealtime && window.supabaseRealtime.data.punches) || [];
             console.log('%c📌 PONTOS REGISTRADOS:', 'color: #f39c12; font-weight: bold;');
             console.log('Total:', punches.length, 'pontos');
             if (punches.length > 0) {
@@ -542,7 +542,7 @@
                 })));
             }
             
-            const cargosDept = JSON.parse(localStorage.getItem('topservice_cargos_departamento_v1') || '[]');
+            const cargosDept = (window.supabaseRealtime && window.supabaseRealtime.data.cargos_departamento) || [];
             console.log('%c🏢 CARGOS POR DEPARTAMENTO:', 'color: #9b59b6; font-weight: bold;');
             console.log('Total:', cargosDept.length);
             if (cargosDept.length > 0) {
@@ -555,7 +555,7 @@
                 })));
             }
             
-            const afastamentos = JSON.parse(localStorage.getItem('topservice_afastamentos_v1') || '[]');
+            const afastamentos = (window.supabaseRealtime && window.supabaseRealtime.data.afastamentos) || [];
             console.log('%c📋 AFASTAMENTOS:', 'color: #e67e22; font-weight: bold;');
             console.log('Total:', afastamentos.length);
             if (afastamentos.length > 0) {
