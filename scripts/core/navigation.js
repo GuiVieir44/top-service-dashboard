@@ -200,34 +200,30 @@ class NavigationSystem {
     }
 
     handleNavigation(pageId, clickedElement) {
-        console.log(`\n📄 handleNavigation INICIADO`);
-        console.log(`   pageId: "${pageId}"`);
-        console.log(`   currentPage: "${this.currentPage}"`);
-        console.log(`   Mesma página? ${this.currentPage === pageId}`);
-        
-        // Permitir re-inicializar 'funcionarios-novo' mesmo se já estiver nela
-        // Pois é um formulário que pode ser aberto múltiplas vezes
+        console.log(`\n📄 handleNavigation INICIADO para: "${pageId}"`);
+
+        // Não fazer nada se já estiver na página (exceto para formulários)
         if (this.currentPage === pageId && pageId !== 'funcionarios-novo') {
-            console.log(`⏭️  Já está na página ${pageId}, ignorando`);
+            console.log(`⏭️  Já está na página ${pageId}, ignorando.`);
             return;
         }
 
-        console.log(`   ✅ Permitido navegar para: ${pageId}`);
-
-        if (typeof restrictPageAccess === 'function') {
-            const canAccess = restrictPageAccess(pageId);
-            console.log(`   restrictPageAccess("${pageId}") = ${canAccess}`);
-            if (!canAccess) {
-                console.warn(`🚫 Acesso restrito à página: ${pageId}`);
-                return;
-            }
+        // Verificar permissões de acesso
+        if (typeof restrictPageAccess === 'function' && !restrictPageAccess(pageId)) {
+            console.warn(`🚫 Acesso restrito à página: ${pageId}`);
+            showToast('Você não tem permissão para acessar esta página.', 'error');
+            return;
         }
 
-        console.log(`   📌 Atualizando menu...`);
+        // Atualizar o estado visual do menu
         this.updateMenuState(clickedElement);
-        console.log(`   📌 Mostrando conteúdo...`);
+
+        // Mostrar o conteúdo da página
         this.showPageContent(pageId);
+
+        // Atualizar a página atual
         this.currentPage = pageId;
+
         console.log(`✅ Navegação concluída para: ${pageId}\n`);
     }
 
