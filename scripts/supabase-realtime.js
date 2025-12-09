@@ -195,6 +195,11 @@
         
         localStorage.setItem(config.localStorage, JSON.stringify(data));
         window[table] = data;
+
+        // Garantir que o cache em memória dos funcionários seja atualizado
+        if (table === 'employees' && typeof window.refreshEmployeesCache === 'function') {
+            window.refreshEmployeesCache(data);
+        }
     }
 
     // ===== MERGE INTELIGENTE (NÃO PERDE DADOS) =====

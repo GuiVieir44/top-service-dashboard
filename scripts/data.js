@@ -111,6 +111,18 @@ function initializeEmployeesData() {
     }
 }
 
+// Força atualizar o cache em memória a partir de dados fornecidos ou do localStorage
+window.refreshEmployeesCache = function(data = null) {
+    try {
+        const src = data ? data : JSON.parse(localStorage.getItem(EMP_KEY) || '[]');
+        employees = Array.isArray(src) ? src : [];
+        window.employees = employees;
+        console.log('🔄 refreshEmployeesCache:', employees.length, 'registros');
+    } catch (e) {
+        console.error('❌ refreshEmployeesCache falhou:', e);
+    }
+};
+
 /**
  * Persiste a lista de funcionários no localStorage
  * @throws {Error} Se houver erro ao salvar
