@@ -17,12 +17,16 @@
  * @property {string} endereco - Endereço residencial
  */
 
-// Array de funcionários - carregado do localStorage
+// Array de funcionários (mantido em memória)
 const employeesData = [];
 
 // ===== Constantes de Persistência =====
 const EMP_KEY = 'topservice_employees_v1';
 const VALID_STATUSES = ['Ativo', 'Desligado', 'Férias', 'Afastado'];
+
+// Variável global que armazena todos os funcionários (precisa existir antes do IIFE)
+let employees = [];
+window.employees = employees;
 
 // ===== GERAR UUID =====
 function generateUUID() {
@@ -89,9 +93,6 @@ function performSaveEmployees() {
     }
 }
 
-// Variável global que armazena todos os funcionários
-let employees = [];
-
 /**
  * Inicializa o sistema de dados, carregando funcionários do localStorage
  * NÃO usa defaults - dados vêm do Supabase
@@ -119,8 +120,8 @@ function saveEmployees() {
     scheduleSaveEmployees();
 }
 
-// NÃO inicializar automaticamente - deixar Supabase fazer
-// initializeEmployeesData();
+// Inicializar automaticamente para garantir que o localStorage carregue os dados
+initializeEmployeesData();
 
 /**
  * Obtém a lista completa de funcionários
