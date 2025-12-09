@@ -183,18 +183,17 @@ class NavigationSystem {
             console.log(`      ${i}: data-page="${btn.dataset.page}"`);
         });
 
-        // SIMPLES: Adicionar listener ao ul/nav-links
-        navLinks.addEventListener('click', (e) => {
-            console.log('🖱️ CLIQUE DETECTADO em .nav-links');
-            const btn = e.target.closest('button.nav-item');
-            console.log('   ✅ btn encontrado?', !!btn);
-            if (btn) {
-                console.log(`   📍 btn.dataset.page = "${btn.dataset.page}"`);
-                if (btn.dataset.page) {
-                    console.log(`   🎯 NAVEGANDO PARA: ${btn.dataset.page}`);
-                    this.handleNavigation(btn.dataset.page, btn);
+        // Adiciona um listener para cada botão individualmente
+        buttons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                console.log('🖱️ CLIQUE DETECTADO em .nav-item');
+                const page = btn.dataset.page;
+                console.log(`   📍 btn.dataset.page = "${page}"`);
+                if (page) {
+                    console.log(`   🎯 NAVEGANDO PARA: ${page}`);
+                    this.handleNavigation(page, btn);
                 }
-            }
+            });
         });
         
         console.log('✅ setupEventListeners() COMPLETO');
