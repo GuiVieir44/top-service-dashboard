@@ -1,58 +1,70 @@
 /**
- * Módulo de Departamentos (Reconstruído)
+ * Módulo de Departamentos (Versão Integrada)
  * 
- * Foco: Simplicidade, robustez e logging claro para depuração.
+ * Responsável por gerenciar a UI e interações na página de departamentos,
+ * utilizando o `supabaseRealtime` como única fonte da verdade para os dados.
  */
 
-// Função principal de inicialização do módulo de departamentos.
-// Chamada pelo sistema de navegação após a página ser carregada.
+// Função de inicialização, chamada pelo sistema de navegação.
 function initDepartmentsModule() {
-    console.log('[DEPT] 🚀 Módulo de Departamentos (reconstruído) INICIADO.');
+    console.log('[DEPT] 🚀 Módulo de Departamentos (Integrado) INICIADO.');
 
-    // 1. Encontrar o botão Salvar pelo novo ID.
-    const saveButton = document.getElementById('save-dept-btn');
-
-    // 2. Encontrar os campos de input.
-    const nameInput = document.getElementById('new-dept-name');
-    const descInput = document.getElementById('new-dept-desc');
-
-    // 3. Encontrar o container da lista.
-    const listContainer = document.getElementById('dept-list-container');
-
-    // 4. Verificar se os elementos essenciais foram encontrados.
-    if (!saveButton) {
-        console.error('[DEPT] ❌ CRÍTICO: O botão "save-dept-btn" não foi encontrado no DOM. A função não pode continuar.');
-        showToast('Erro crítico: Botão Salvar não encontrado.', 'error');
-        return;
-    }
-    if (!nameInput || !descInput) {
-        console.error('[DEPT] ❌ CRÍTICO: Campos de nome ou descrição não encontrados.');
-        return;
-    }
-    if (!listContainer) {
-        console.error('[DEPT] ❌ CRÍTICO: Container da lista não encontrado.');
-        return;
+    const addButton = document.getElementById('dept-add-btn');
+    if (addButton) {
+        // Garantir que não haja listeners duplicados
+        addButton.removeEventListener('click', handleAddDepartment);
+        addButton.addEventListener('click', handleAddDepartment);
+        console.log('[DEPT] ✅ Event listener adicionado ao botão "Adicionar".');
+    } else {
+        console.error('[DEPT] ❌ CRÍTICO: Botão "dept-add-btn" não encontrado.');
     }
 
-    console.log('[DEPT] ✅ Elementos essenciais (botão, inputs, lista) foram encontrados no DOM.');
-
-    // 5. Adicionar o event listener ao botão Salvar.
-    // Removemos qualquer listener antigo para garantir que não haja duplicatas.
-    saveButton.removeEventListener('click', handleSaveDepartment);
-    saveButton.addEventListener('click', handleSaveDepartment);
-
-    console.log('[DEPT] ✅ Event listener "click" adicionado ao botão "save-dept-btn".');
-
-    // 6. Carregar e renderizar a lista de departamentos existentes.
-    renderDepartmentList();
+    // A renderização inicial é chamada pelo supabase-realtime.js,
+    // mas podemos chamar aqui para garantir que a lista apareça se os dados já estiverem em cache.
+    renderDepartments();
 }
 
-// Função chamada quando o botão Salvar é clicado.
-async function handleSaveDepartment() {
-    console.log('[DEPT] 🖱️ Botão "Salvar Departamento" foi clicado.');
+// Função para renderizar a lista de departamentos na tabela.
+function renderDepartments() {
+    console.log('[DEPT] 🎨 Renderizando a lista de departamentos...');
+    const departments = window.supabaseRealtime.data.departments || [];
+    const listBody = document.getElementById('dept-list-body');
 
-    const nameInput = document.getElementById('new-dept-name');
-    const descInput = document.getElementById('new-dept-desc');
+    if (!listBody) {
+        console.warn('[DEPT] ⚠️ Tabela "dept-list-body" não encontrada no DOM. A renderização foi pulada.');
+        return;
+    }
+
+    if (departments.length === 0) {
+        listBody.innerHTML = `
+            <tr>
+                <td colspan="3" style="text-align: center; padding: 20px; color: #888;">
+                    Nenhum departamento cadastrado.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    listBody.innerHTML = departments.map(dept => `
+        <tr data-id="${dept.id}">
+            <td>${escapeHTML(dept.nome)}</td>
+            <td>${escapeHTML(dept.descricao || '')}</td>
+            <td class="actions-column">
+                <button class="btn-icon btn-edit" onclick="handleEditDepartment('${dept.id}')" title="Editar">✏️</button>
+                <button class="btn-icon btn-delete" onclick="handleDeleteDepartment('${dept.id}')" title="Excluir">🗑️</button>
+            </td>
+        </tr>
+    `).join('');
+
+    console.log(`[DEPT] ✅ Lista de ${departments.length} departamentos renderizada.`);
+}
+
+// Manipulador para o clique no botão "Adicionar Departamento".
+async function handleAddDepartment() {
+    console.log('[DEPT] ➕ Tentando adicionar novo departamento...');
+    const nameInput = document.getElementById('dept-name');
+    const descInput = document.getElementById('dept-desc');
 
     const nome = nameInput.value.trim();
     const descricao = descInput.value.trim();
@@ -63,163 +75,129 @@ async function handleSaveDepartment() {
         return;
     }
 
-    console.log(`[DEPT] 📝 Tentando salvar novo departamento: "${nome}"`);
-    showToast('Salvando departamento...', 'info');
+    showToast('Adicionando departamento...', 'info');
 
-    try {
-        // Simula uma chamada à API (substituir pela lógica do Supabase)
-        const newDepartment = await saveDepartmentToDatabase({ nome, descricao });
+    // A operação de inserção é delegada ao supabaseRealtime.
+    const result = await window.supabaseRealtime.insert('departments', { nome, descricao });
 
-        console.log('[DEPT] ✅ Departamento salvo com sucesso na "base de dados".', newDepartment);
-        showToast('Departamento salvo com sucesso!', 'success');
-
-        // Limpar os campos após o sucesso
+    if (result) {
+        showToast('Departamento adicionado com sucesso!', 'success');
+        // Limpa os campos após o sucesso.
         nameInput.value = '';
         descInput.value = '';
-
-        // Atualizar a lista na tela para mostrar o novo item
-        renderDepartmentList();
-
-    } catch (error) {
-        console.error('[DEPT] ❌ Erro ao salvar o departamento:', error);
-        showToast(`Erro ao salvar: ${error.message}`, 'error');
+        console.log('[DEPT] ✅ Campos do formulário limpos.');
+    } else {
+        showToast('Falha ao adicionar o departamento.', 'error');
+        console.error('[DEPT] ❌ Falha na operação de inserção.');
     }
+    // A UI será atualizada automaticamente pelo listener do `supabaseRealtime`.
 }
 
-// Função para renderizar a lista de departamentos.
-async function renderDepartmentList() {
-    const listContainer = document.getElementById('dept-list-container');
-    if (!listContainer) return;
-
-    listContainer.innerHTML = '<p style="text-align: center; color: #999;">Carregando lista...</p>';
-
-    try {
-        const departments = await fetchDepartmentsFromDatabase();
-        console.log(`[DEPT] 📊 ${departments.length} departamentos carregados.`);
-
-        if (departments.length === 0) {
-            listContainer.innerHTML = '<p style="text-align: center; color: #999;">Nenhum departamento cadastrado.</p>';
-            return;
-        }
-
-        const table = document.createElement('table');
-        table.className = 'table';
-        table.innerHTML = `
-            <thead>
-                <tr>
-                    <th>Nome</th>
-                    <th>Descrição</th>
-                    <th class="actions-column">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${departments.map(dept => `
-                    <tr data-id="${dept.id}">
-                        <td>${dept.nome}</td>
-                        <td>${dept.descricao || ''}</td>
-                        <td class="actions-column">
-                            <button class="btn-icon btn-edit" onclick="handleEditDepartment('${dept.id}')" title="Editar">✏️</button>
-                            <button class="btn-icon btn-delete" onclick="handleDeleteDepartment('${dept.id}')" title="Excluir">🗑️</button>
-                        </td>
-                    </tr>
-                `).join('')}
-            </tbody>
-        `;
-        listContainer.innerHTML = '';
-        listContainer.appendChild(table);
-
-    } catch (error) {
-        console.error('[DEPT] ❌ Erro ao renderizar a lista de departamentos:', error);
-        listContainer.innerHTML = '<p style="text-align: center; color: #e74c3c;">Erro ao carregar a lista.</p>';
-    }
-}
-
-// Função para deletar um departamento.
+// Manipulador para o clique no botão "Excluir".
 async function handleDeleteDepartment(id) {
-    if (!confirm('Tem certeza que deseja excluir este departamento?')) {
+    if (!id) {
+        console.error('[DEPT] ❌ ID para exclusão é inválido.');
         return;
     }
 
-    console.log(`[DEPT] 🗑️ Tentando excluir departamento com ID: ${id}`);
-    showToast('Excluindo...', 'info');
+    if (!confirm('Tem certeza que deseja excluir este departamento? Esta ação não pode ser desfeita.')) {
+        return;
+    }
 
-    try {
-        await deleteDepartmentFromDatabase(id);
+    showToast('Excluindo departamento...', 'info');
+
+    // A operação de remoção é delegada ao supabaseRealtime.
+    const result = await window.supabaseRealtime.remove('departments', id);
+
+    if (result !== null) { // `remove` pode retornar `undefined` em sucesso
         showToast('Departamento excluído com sucesso!', 'success');
-        renderDepartmentList(); // Atualiza a lista
-    } catch (error) {
-        console.error('[DEPT] ❌ Erro ao excluir:', error);
-        showToast(`Erro ao excluir: ${error.message}`, 'error');
+    } else {
+        showToast('Falha ao excluir o departamento.', 'error');
+        console.error(`[DEPT] ❌ Falha ao excluir departamento com ID: ${id}`);
     }
+    // A UI será atualizada automaticamente.
 }
 
-// Função de edição (placeholder).
+// Manipulador para o clique no botão "Editar".
 function handleEditDepartment(id) {
-    console.log(`[DEPT] ✏️ Editar departamento com ID: ${id}`);
-    showToast('Função de edição ainda não implementada.', 'info');
-    // Aqui, você poderia preencher o formulário com os dados do departamento
+    console.log(`[DEPT] ✏️ Editando departamento ID: ${id}`);
+    const departments = window.supabaseRealtime.data.departments || [];
+    const department = departments.find(d => d.id === id);
+
+    if (!department) {
+        showToast('Departamento não encontrado.', 'error');
+        return;
+    }
+
+    // Preenche o formulário com os dados existentes para edição.
+    const nameInput = document.getElementById('dept-name');
+    const descInput = document.getElementById('dept-desc');
+    nameInput.value = department.nome;
+    descInput.value = department.descricao;
+
+    // Altera o botão de "Adicionar" para "Salvar Alterações".
+    const addButton = document.getElementById('dept-add-btn');
+    addButton.innerHTML = '<span class="icon">💾</span> Salvar Alterações';
+    
+    // Remove o listener de adicionar e adiciona um novo para salvar.
+    const saveHandler = async () => {
+        const newName = nameInput.value.trim();
+        const newDesc = descInput.value.trim();
+
+        if (!newName) {
+            showToast('O nome não pode ficar em branco.', 'error');
+            return;
+        }
+
+        showToast('Salvando alterações...', 'info');
+        
+        const updateData = { nome: newName, descricao: newDesc };
+        const result = await window.supabaseRealtime.update('departments', id, updateData);
+
+        if (result) {
+            showToast('Departamento atualizado com sucesso!', 'success');
+            // Limpa os campos e restaura o botão.
+            nameInput.value = '';
+            descInput.value = '';
+            addButton.innerHTML = '<span class="icon">➕</span> Adicionar Departamento';
+            // Restaura o listener original.
+            addButton.removeEventListener('click', saveHandler);
+            addButton.addEventListener('click', handleAddDepartment);
+        } else {
+            showToast('Falha ao atualizar o departamento.', 'error');
+        }
+    };
+
+    addButton.removeEventListener('click', handleAddDepartment);
+    addButton.addEventListener('click', saveHandler, { once: true }); // Executa apenas uma vez
+    
+    // Adiciona um botão "Cancelar" para sair do modo de edição.
+    const cancelButton = document.createElement('button');
+    cancelButton.textContent = 'Cancelar';
+    cancelButton.className = 'btn btn-ghost';
+    cancelButton.style.marginLeft = '10px';
+    cancelButton.onclick = () => {
+        nameInput.value = '';
+        descInput.value = '';
+        addButton.innerHTML = '<span class="icon">➕</span> Adicionar Departamento';
+        addButton.removeEventListener('click', saveHandler);
+        addButton.addEventListener('click', handleAddDepartment);
+        cancelButton.remove();
+    };
+    
+    // Insere o botão Cancelar se ele ainda não existir.
+    if (!addButton.nextElementSibling || addButton.nextElementSibling.tagName !== 'BUTTON') {
+        addButton.parentNode.appendChild(cancelButton);
+    }
 }
 
-
-// ==================================================================
-// SIMULAÇÃO DE BANCO DE DADOS (Substituir por chamadas Supabase)
-// ==================================================================
-
-// Pega os dados do localStorage ou retorna um array vazio
-const getMockDatabase = () => {
-    try {
-        const data = localStorage.getItem('mock_departments_db');
-        return data ? JSON.parse(data) : [];
-    } catch (e) {
-        return [];
-    }
-};
-
-// Salva os dados no localStorage
-const saveMockDatabase = (db) => {
-    localStorage.setItem('mock_departments_db', JSON.stringify(db));
-};
-
-// Simula a busca de dados
-const fetchDepartmentsFromDatabase = () => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const db = getMockDatabase();
-            resolve(db);
-        }, 300); // Simula latência de rede
-    });
-};
-
-// Simula o salvamento de um novo departamento
-const saveDepartmentToDatabase = (deptData) => {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            const db = getMockDatabase();
-            const newDept = {
-                id: `dept_${Date.now()}`, // ID único
-                ...deptData
-            };
-            db.push(newDept);
-            saveMockDatabase(db);
-            resolve(newDept);
-        }, 300);
-    });
-};
-
-// Simula a exclusão de um departamento
-const deleteDepartmentFromDatabase = (id) => {
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            let db = getMockDatabase();
-            const initialLength = db.length;
-            db = db.filter(dept => dept.id !== id);
-
-            if (db.length === initialLength) {
-                return reject(new Error('Departamento não encontrado.'));
-            }
-
-            saveMockDatabase(db);
-            resolve();
-        }, 300);
-    });
-};
+// Função de utilidade para escapar HTML e prevenir XSS.
+function escapeHTML(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString()
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}

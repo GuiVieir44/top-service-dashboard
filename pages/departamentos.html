@@ -11,17 +11,19 @@
             <h2>Adicionar Novo Departamento</h2>
         </div>
         <div class="card-body">
-            <div class="form-group">
-                <label for="new-dept-name">Nome do Departamento</label>
-                <input type="text" id="new-dept-name" class="form-input" placeholder="Ex: Limpeza, Portaria">
-            </div>
-            <div class="form-group">
-                <label for="new-dept-desc">Descrição</label>
-                <input type="text" id="new-dept-desc" class="form-input" placeholder="Breve descrição das atividades">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label for="dept-name">Nome do Departamento</label>
+                    <input type="text" id="dept-name" class="form-input" placeholder="Ex: Limpeza, Portaria, Administrativo">
+                </div>
+                <div class="form-group">
+                    <label for="dept-desc">Descrição (Opcional)</label>
+                    <input type="text" id="dept-desc" class="form-input" placeholder="Breve descrição das atividades">
+                </div>
             </div>
             <div class="form-actions">
-                <button id="save-dept-btn" class="btn btn-primary">
-                    <span class="icon">💾</span> Salvar Departamento
+                <button id="dept-add-btn" class="btn btn-primary">
+                    <span class="icon">➕</span> Adicionar Departamento
                 </button>
             </div>
         </div>
@@ -32,8 +34,24 @@
             <h2>Departamentos Cadastrados</h2>
         </div>
         <div class="card-body">
-            <div class="table-responsive" id="dept-list-container">
-                <p style="text-align: center; color: #999; padding: 20px;">Carregando departamentos...</p>
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Descrição</th>
+                            <th class="actions-column">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dept-list-body">
+                        <!-- As linhas de departamento serão inseridas aqui pelo JavaScript -->
+                        <tr>
+                            <td colspan="3" style="text-align: center; padding: 20px; color: #888;">
+                                Carregando departamentos...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
