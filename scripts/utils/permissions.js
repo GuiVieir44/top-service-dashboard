@@ -5,6 +5,21 @@
 console.log('🔐 Sistema de permissões carregado');
 
 /**
+ * Obtém a sessão atual do usuário
+ * @returns {Object|null}
+ */
+function getCurrentSession() {
+    try {
+        const sessionData = localStorage.getItem('topservice_session');
+        if (!sessionData) return null;
+        return JSON.parse(sessionData);
+    } catch (e) {
+        console.error('Erro ao obter sessão:', e);
+        return null;
+    }
+}
+
+/**
  * Verifica se o usuário atual tem permissão para acessar um recurso
  * @param {string} resource - Nome do recurso (funcionarios, usuarios, etc)
  * @returns {boolean}
