@@ -235,9 +235,6 @@ class NavigationSystem {
         if (typeof initFn === 'function') {
             console.log(`[NAV] ✅ Encontrado inicializador para ${pageId}. Executando...`);
             try {
-                // Await a small delay to ensure the DOM is fully painted after innerHTML update.
-                await new Promise(resolve => setTimeout(resolve, 50)); 
-                
                 initFn();
                 console.log(`[NAV] ✅ Módulo ${pageId} inicializado com sucesso.`);
                 
@@ -1130,27 +1127,11 @@ document.addEventListener('click', (e) => {
     }
 }, true); // Usar captura, não bubbling
 
-// Tentar inicializar logo que o script carregar
-console.log('📄 navigation.js carregado');
-console.log('📄 document.readyState:', document.readyState);
-
-// Se o DOM já está pronto, inicializar agora
-if (document.readyState === 'loading') {
-    console.log('⏳ DOM ainda está loading, aguardando DOMContentLoaded');
-    document.addEventListener('DOMContentLoaded', () => {
-        console.log('📄 DOMContentLoaded disparado - Iniciando NavigationSystem');
-        if (!window.navigationSystem) {
-            window.navigationSystem = new NavigationSystem();
-            console.log('✅ NavigationSystem inicializado com sucesso!');
-        }
-    });
-} else {
-    console.log('✅ DOM já está pronto, inicializando NavigationSystem agora');
-    // DOM já foi carregado, inicializar agora
-    setTimeout(() => {
-        if (!window.navigationSystem) {
-            window.navigationSystem = new NavigationSystem();
-            console.log('✅ NavigationSystem inicializado com sucesso!');
-        }
-    }, 0);
-}
+// Garante que o DOM esteja pronto antes de instanciar o sistema de navegação
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('🚀 DOMContentLoaded - Inicializando NavigationSystem');
+    if (!window.navigationSystem) {
+        window.navigationSystem = new NavigationSystem();
+        console.log('✅ NavigationSystem instanciado e pronto.');
+    }
+});
