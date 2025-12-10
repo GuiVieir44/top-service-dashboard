@@ -1,0 +1,49 @@
+<header class="header">
+    <div class="header-title">
+        <h1>Departamentos</h1>
+        <p>Gerencie os departamentos da empresa.</p>
+    </div>
+</header>
+
+<section class="status-section">
+    <div class="status-card">
+        <h2>Adicionar Novo Departamento</h2>
+        <div class="status-content">
+            <div class="form-row">
+                <label class="form-field" style="flex: 1;">
+                    Nome do Departamento
+                    <input type="text" id="dept-name" class="form-input" placeholder="Ex: Financeiro, RH, TI">
+                </label>
+                <label class="form-field" style="flex: 2;">
+                    Descrição (Opcional)
+                    <input type="text" id="dept-desc" class="form-input" placeholder="Breve descrição das responsabilidades do departamento">
+                </label>
+            </div>
+            <div class="form-row" style="justify-content: flex-end; margin-top: 15px;">
+                <button id="dept-add-btn" class="btn btn-primary">Adicionar Departamento</button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="status-section">
+    <div class="status-card">
+        <h2>Lista de Departamentos</h2>
+        <div class="status-content">
+            <div style="overflow-x: auto;">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Descrição</th>
+                            <th class="actions">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="dept-list-body">
+                        <!-- As linhas dos departamentos serão inseridas aqui pelo script -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
