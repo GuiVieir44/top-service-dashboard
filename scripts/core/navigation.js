@@ -186,12 +186,14 @@ class NavigationSystem {
         // Adiciona um listener para cada botão individualmente
         buttons.forEach(btn => {
             btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 console.log('🖱️ CLIQUE DETECTADO em .nav-item');
                 const page = btn.dataset.page;
                 console.log(`   📍 btn.dataset.page = "${page}"`);
                 if (page) {
                     console.log(`   🎯 NAVEGANDO PARA: ${page}`);
-                    this.handleNavigation(page, btn);
+                    this.navigateTo(page);
                 }
             });
         });
@@ -199,8 +201,8 @@ class NavigationSystem {
         console.log('✅ setupEventListeners() COMPLETO');
     }
 
-    handleNavigation(pageId, clickedElement) {
-        console.log(`\n📄 handleNavigation INICIADO para: "${pageId}"`);
+    navigateTo(pageId) {
+        console.log(`\n📄 navigateTo INICIADO para: "${pageId}"`);
 
         // Não fazer nada se já estiver na página (exceto para formulários)
         if (this.currentPage === pageId && pageId !== 'funcionarios-novo') {
@@ -216,7 +218,16 @@ class NavigationSystem {
         }
 
         // Atualizar o estado visual do menu
-        this.updateMenuState(clickedElement);
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+            item.removeAttribute('aria-current');
+        });
+        
+        const activeBtn = document.querySelector(`.nav-item[data-page="${pageId}"]`);
+        if (activeBtn) {
+            activeBtn.classList.add('active');
+            activeBtn.setAttribute('aria-current', 'page');
+        }
 
         // Mostrar o conteúdo da página
         this.showPageContent(pageId);
@@ -227,16 +238,9 @@ class NavigationSystem {
         console.log(`✅ Navegação concluída para: ${pageId}\n`);
     }
 
-    updateMenuState(activeElement) {
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-            item.removeAttribute('aria-current');
-        });
-
-        if (activeElement && activeElement.classList) {
-            activeElement.classList.add('active');
-            try { activeElement.setAttribute('aria-current', 'page'); if (typeof activeElement.focus === 'function') activeElement.focus(); } catch (e) {}
-        }
+    // Método legado para compatibilidade
+    handleNavigation(pageId, clickedElement) {
+        this.navigateTo(pageId);
     }
 
     showPageContent(pageId) {
