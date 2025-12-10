@@ -1,502 +1,225 @@
-// ==========================================
-// MÓDULO DE DEPARTAMENTOS - TOP SERVICE
-// ==========================================
+/**
+ * Módulo de Departamentos (Reconstruído)
+ * 
+ * Foco: Simplicidade, robustez e logging claro para depuração.
+ */
 
-var DEPT_KEY = 'topservice_departamentos_v1';
-
-function loadDepartments() {
-    try { 
-        var rawData = localStorage.getItem(DEPT_KEY);
-        console.log('[DEPT] Dados brutos no localStorage:', rawData ? 'SIM (' + rawData.length + ' caracteres)' : 'NÃO (null)');
-        
-        var list = rawData ? JSON.parse(rawData) : [];
-        
-        // Garantir compatibilidade: converter 'name' para 'nome'
-        list = list.map(d => ({
-            id: d.id,
-            nome: d.nome || d.name || '',
-            description: d.description || ''
-        }));
-        
-        console.log('[DEPT] Departamentos carregados:', list.length, list);
-        return list;
-    } catch(e) { 
-        console.error('[DEPT] Erro ao carregar departamentos:', e); 
-        return []; 
-    }
-}
-
-function saveDepartments(list) {
-    try { 
-        // Garantir que todos os departamentos tenham AMBOS os campos 'nome' e 'name'
-        const normalizedList = list.map(d => ({
-            id: d.id,
-            nome: d.nome || d.name || '',
-            name: d.nome || d.name || '',  // Duplicar para compatibilidade com Supabase
-            description: d.description || ''
-        }));
-        
-        localStorage.setItem(DEPT_KEY, JSON.stringify(normalizedList));
-        
-        // Validação pós-salvamento
-        try {
-            const verification = JSON.parse(localStorage.getItem(DEPT_KEY));
-            if (verification.length === normalizedList.length) {
-                console.log('%c[DEPT] ✅ Departamentos salvos com sucesso: ' + normalizedList.length, 'color: #27ae60;');
-            } else {
-                console.warn('%c[DEPT] ⚠️  Falha na validação - quantidade incorreta', 'color: #f39c12;');
-            }
-        } catch (e) {
-            console.warn('%c[DEPT] ⚠️  Erro ao validar salvamento', 'color: #f39c12;', e.message);
-        }
-    } catch(e) { 
-        console.error('%c[DEPT] ❌ Erro ao salvar departamentos', 'color: #e74c3c;', e); 
-    }
-}
-
-function addDepartment(name, description) {
-    if (!name) {
-        showToast('Nome do departamento é obrigatório.', 'warning');
-        return Promise.reject('Nome é obrigatório');
-    }
-
-    const id = 'dept_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-    const newDept = { id, nome: name, name: name, description: description || '' };
-
-    if (window.supabaseRealtime && window.supabaseRealtime.insert) {
-        console.log('☁️ Enviando novo departamento para Supabase...');
-        return window.supabaseRealtime.insert('departamentos', newDept)
-            .then(result => {
-                showToast('Departamento adicionado com sucesso!', 'success');
-                renderDepartments(); // Re-render for immediate feedback
-                return result;
-            })
-            .catch(err => {
-                console.error('❌ Erro ao adicionar departamento via Supabase:', err);
-                showToast('Erro ao adicionar departamento.', 'error');
-                throw err;
-            });
-    } else {
-        // Fallback para localStorage
-        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
-        const list = loadDepartments();
-        list.push(newDept);
-        saveDepartments(list);
-        renderDepartments();
-        return Promise.resolve(newDept);
-    }
-}
-
-function getDepartmentById(id) {
-    var list = loadDepartments();
-    return list.find(function(d) { return d.id === id || d.id === Number(id); });
-}
-
-function getDepartmentByName(name) {
-    if (!name) return null;
-    var list = loadDepartments();
-    return list.find(function(d) { return d.nome === name; });
-}
-
-function deleteDepartment(id) {
-    if (!confirm('Confirma exclusão deste departamento?')) return;
-
-    if (window.supabaseRealtime && window.supabaseRealtime.remove) {
-        console.log('🗑️ Removendo departamento do Supabase Realtime...');
-        window.supabaseRealtime.remove('departamentos', id)
-            .then(() => {
-                showToast('Departamento excluído!', 'success');
-                renderDepartments(); // Re-render for immediate feedback
-            })
-            .catch(err => {
-                console.error('❌ Erro ao excluir departamento via Supabase:', err);
-                showToast('Erro ao excluir departamento.', 'error');
-            });
-    } else {
-        // Fallback para localStorage
-        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
-        const idStr = String(id);
-        const list = loadDepartments().filter(d => String(d.id) !== idStr);
-        saveDepartments(list);
-        renderDepartments();
-    }
-}
-
-// NOVA FUNÇÃO: Atualizar departamento
-function updateDepartment(id, newName, newDescription) {
-    const deptData = {
-        nome: newName,
-        name: newName,
-        description: newDescription || ''
-    };
-
-    if (window.supabaseRealtime && window.supabaseRealtime.update) {
-        console.log('☁️ Atualizando departamento no Supabase...');
-        return window.supabaseRealtime.update('departamentos', id, deptData)
-            .then(updatedDept => {
-                renderDepartments(); // Re-render for immediate feedback
-                return updatedDept;
-            })
-            .catch(err => {
-                console.error('❌ Erro ao atualizar departamento via Supabase:', err);
-                showToast('Erro ao atualizar departamento.', 'error');
-                throw err;
-            });
-    } else {
-        // Fallback para localStorage
-        console.warn('⚠️ Supabase não disponível. Usando localStorage.');
-        const list = loadDepartments();
-        const idStr = String(id);
-        const index = list.findIndex(d => String(d.id) === idStr);
-
-        if (index === -1) {
-            console.warn('[DEPT] Departamento não encontrado para edição:', id);
-            return Promise.resolve(null);
-        }
-
-        list[index] = { ...list[index], ...deptData };
-        saveDepartments(list);
-        renderDepartments();
-        return Promise.resolve(list[index]);
-    }
-}
-
-// NOVA FUNÇÃO: Abrir modal de edição de departamento
-function openEditDepartmentModal(id) {
-    var dept = getDepartmentById(id);
-    if (!dept) {
-        showToast('Departamento não encontrado', 'error');
-        return;
-    }
-    
-    var modalHTML = `
-        <div class="modal-overlay" onclick="this.remove()" id="modal-edit-dept">
-            <div class="modal-content" onclick="event.stopPropagation()" style="max-width: 500px;">
-                <div class="modal-header">
-                    <h2>Editar Departamento</h2>
-                    <button class="modal-close-btn" onclick="document.getElementById('modal-edit-dept').remove()">×</button>
-                </div>
-                
-                <div class="modal-section" style="padding: 20px;">
-                    <div style="margin-bottom: 15px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Nome:</label>
-                        <input type="text" id="edit-dept-name" value="${dept.nome || ''}" 
-                               style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px;">
-                    </div>
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 600;">Descrição:</label>
-                        <textarea id="edit-dept-desc" rows="3"
-                                  style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; resize: vertical;">${dept.description || ''}</textarea>
-                    </div>
-                    <div style="display: flex; gap: 10px; justify-content: flex-end;">
-                        <button onclick="document.getElementById('modal-edit-dept').remove()" 
-                                style="padding: 10px 20px; border: 1px solid #ddd; background: #f5f5f5; border-radius: 6px; cursor: pointer;">
-                            Cancelar
-                        </button>
-                        <button onclick="saveEditDepartment('${id}')" 
-                                style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
-                            Salvar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    `;
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-}
-
-// NOVA FUNÇÃO: Salvar edição de departamento
-function saveEditDepartment(id) {
-    var newName = document.getElementById('edit-dept-name').value.trim();
-    var newDesc = document.getElementById('edit-dept-desc').value.trim();
-    
-    if (!newName) {
-        showToast('Nome é obrigatório', 'warning');
-        return;
-    }
-    
-    updateDepartment(id, newName, newDesc)
-        .then(updated => {
-            if (updated) {
-                showToast('Departamento atualizado!', 'success');
-                const modal = document.getElementById('modal-edit-dept');
-                if (modal) modal.remove();
-            } else {
-                showToast('Erro ao atualizar departamento', 'error');
-            }
-        })
-        .catch(() => {
-            showToast('Erro ao atualizar departamento', 'error');
-        });
-}
-
-function renderDepartments() {
-    console.log('[DEPT] renderDepartments() chamado');
-    var tbody = document.getElementById('dept-list-body');
-    if (!tbody) {
-        console.warn('[DEPT] tbody não encontrado');
-        return;
-    }
-    var list = loadDepartments();
-    console.log('[DEPT] Lista para renderizar:', list);
-    tbody.innerHTML = '';
-    if (!list || list.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#666;">Nenhum departamento cadastrado.</td></tr>';
-        return;
-    }
-    list.forEach(function(d){
-        console.log('[DEPT] Renderizando departamento:', d.id, d.nome);
-        var tr = document.createElement('tr');
-        
-        // Célula Nome
-        var tdNome = document.createElement('td');
-        tdNome.style.cssText = 'padding:8px;border:1px solid #e6e6e6;';
-        tdNome.textContent = d.nome || '';
-        
-        // Célula Descrição
-        var tdDesc = document.createElement('td');
-        tdDesc.style.cssText = 'padding:8px;border:1px solid #e6e6e6;';
-        tdDesc.textContent = d.description || '';
-        
-        // Célula Ações
-        var tdAcoes = document.createElement('td');
-        tdAcoes.style.cssText = 'padding:8px;border:1px solid #e6e6e6;text-align:center;';
-        
-        // Botão Cargos - usando closure para capturar valores
-        var btnCargos = document.createElement('button');
-        btnCargos.style.cssText = 'background:#3498db;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;';
-        btnCargos.textContent = 'Cargos';
-        (function(deptId, deptNome) {
-            btnCargos.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[DEPT] Clicou em Cargos:', deptId, deptNome);
-                abrirCargosDepartamentoModal(deptId, deptNome);
-            };
-        })(d.id, d.nome || '');
-        
-        // Botão Editar - usando closure para capturar valor
-        var btnEditar = document.createElement('button');
-        btnEditar.style.cssText = 'background:#f39c12;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;margin-right:4px;';
-        btnEditar.textContent = 'Editar';
-        (function(deptId) {
-            btnEditar.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[DEPT] Clicou em Editar:', deptId);
-                openEditDepartmentModal(deptId);
-            };
-        })(d.id);
-        
-        // Botão Excluir - usando closure para capturar valor
-        var btnExcluir = document.createElement('button');
-        btnExcluir.style.cssText = 'background:#e74c3c;color:#fff;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;';
-        btnExcluir.textContent = 'Excluir';
-        (function(deptId) {
-            btnExcluir.onclick = function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                console.log('[DEPT] Clicou em Excluir:', deptId);
-                deleteDepartment(deptId);
-            };
-        })(d.id);
-        
-        tdAcoes.appendChild(btnCargos);
-        tdAcoes.appendChild(btnEditar);
-        tdAcoes.appendChild(btnExcluir);
-        
-        tr.appendChild(tdNome);
-        tr.appendChild(tdDesc);
-        tr.appendChild(tdAcoes);
-        tbody.appendChild(tr);
-    });
-    console.log('[DEPT] renderDepartments() concluído');
-}
-
-// Expor funções globalmente para garantir acesso
-window.departmentModule = {
-    renderDepartments,
-    deleteDepartment,
-    addDepartment,
-    updateDepartment,
-    openEditDepartmentModal,
-    saveEditDepartment,
-    abrirCargosDepartamentoModal,
-    init: initDepartmentsModule
-};
-
-function abrirCargosDepartamentoModal(deptId, deptName) {
-    var modalHTML = `
-        <div class="modal-overlay" onclick="this.remove()" id="modal-cargos-dept">
-            <div class="modal-content" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <h2>Cargos do Departamento: ${deptName}</h2>
-                    <button class="modal-close-btn" onclick="document.getElementById('modal-cargos-dept').remove()">×</button>
-                </div>
-                
-                <div class="modal-section">
-                    <h4>Adicionar Cargo ao Departamento</h4>
-                    <div class="modal-grid">
-                        <label class="modal-label">
-                            <small>Cargo</small>
-                            <select id="cargos-dept-cargo-select">
-                                <option value="">Selecione um cargo global</option>
-                            </select>
-                            <button id="cargos-dept-create-btn" class="btn btn-success" style="margin-top:8px;width:100%;">+ Criar Novo Cargo</button>
-                        </label>
-                        <label class="modal-label">
-                            <small>Início</small>
-                            <input id="cargos-dept-inicio" type="time" value="08:00" />
-                        </label>
-                        <label class="modal-label">
-                            <small>Fim</small>
-                            <input id="cargos-dept-fim" type="time" value="17:00" />
-                        </label>
-                        <label class="modal-label">
-                            <small>Almoço (min)</small>
-                            <input id="cargos-dept-intervalo" type="number" value="60" min="0" max="180" />
-                        </label>
-                    </div>
-                    <button id="cargos-dept-add-btn" class="btn btn-primary" style="margin-top:10px;">Adicionar Cargo</button>
-                </div>
-                
-                <div style="overflow:auto;">
-                    <h4>Cargos Vinculados</h4>
-                    <table class="modal-table">
-                        <thead>
-                            <tr>
-                                <th>Cargo</th>
-                                <th style="text-align:center;">Início</th>
-                                <th style="text-align:center;">Fim</th>
-                                <th style="text-align:center;">Almoço</th>
-                                <th style="text-align:center;">Horas</th>
-                                <th style="text-align:center;">Banco</th>
-                                <th style="text-align:center;">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="cargos-dept-body"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    document.body.insertAdjacentHTML('beforeend', modalHTML);
-    
-    // Listener para botão "Criar Novo Cargo"
-    var createCargoBtn = document.getElementById('cargos-dept-create-btn');
-    if (createCargoBtn) {
-        createCargoBtn.onclick = function(e) {
-            e.stopPropagation();
-            // Modal para criar novo cargo
-            var createCargoModal = document.createElement('div');
-            createCargoModal.className = 'modal-overlay';
-            createCargoModal.style.zIndex = '10000';
-            createCargoModal.innerHTML = `
-                <div class="modal-content" style="max-width:400px;">
-                    <div class="modal-header">
-                        <h2>Criar Novo Cargo</h2>
-                        <button class="modal-close-btn" onclick="this.closest('.modal-overlay').remove()">×</button>
-                    </div>
-                    <div class="modal-section">
-                        <label class="modal-label">
-                            <small>Nome do Cargo</small>
-                            <input id="new-cargo-name" class="form-input" placeholder="Ex: Gerente, Analista..." style="width:100%;margin-bottom:12px;" />
-                        </label>
-                        <label class="modal-label">
-                            <small>Horas por Dia</small>
-                            <input id="new-cargo-hours" type="number" min="1" max="24" value="8" class="form-input" style="width:100%;margin-bottom:12px;" />
-                        </label>
-                        <div style="display:flex;justify-content:flex-end;gap:8px;">
-                            <button class="btn btn-ghost" onclick="this.closest('.modal-overlay').remove()">Cancelar</button>
-                            <button class="btn btn-primary" onclick="criarCargoModal()">Criar Cargo</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-            document.body.appendChild(createCargoModal);
-            createCargoModal.onclick = e => { if (e.target === createCargoModal) createCargoModal.remove(); };
-        };
-    }
-    
-    // Popula select de cargos globais
-    var cargoSelect = document.getElementById('cargos-dept-cargo-select');
-    if (typeof getCargos === 'function') {
-        var cargosGlobais = getCargos();
-        cargosGlobais.forEach(function(c) {
-            var option = document.createElement('option');
-            option.value = c.id;
-            option.textContent = c.nome;
-            cargoSelect.appendChild(option);
-        });
-    }
-}
-
+// Função principal de inicialização do módulo de departamentos.
+// Chamada pelo sistema de navegação após a página ser carregada.
 function initDepartmentsModule() {
-    console.log('%c[DEPT] 🚀 initDepartmentsModule executado', 'color: #27ae60; font-weight: bold;');
-    
-    const addBtn = document.getElementById('dept-add-btn');
-    
-    if (addBtn) {
-        console.log('[DEPT] Botão "dept-add-btn" encontrado. Anexando evento de clique.');
-        
-        // Remove qualquer listener antigo para evitar duplicidade
-        addBtn.onclick = null; 
-        
-        addBtn.addEventListener('click', function() {
-            console.log('[DEPT] Botão "Adicionar" clicado!');
-            const nameInput = document.getElementById('dept-name');
-            const descInput = document.getElementById('dept-desc');
-            
-            const name = nameInput?.value?.trim();
-            const desc = descInput?.value?.trim() || '';
+    console.log('[DEPT] 🚀 Módulo de Departamentos (reconstruído) INICIADO.');
 
-            if (!name) {
-                showToast('Nome do departamento é obrigatório.', 'warning');
-                return;
-            }
-            
-            addDepartment(name, desc).then(() => {
-                if (nameInput) nameInput.value = '';
-                if (descInput) descInput.value = '';
-                showToast('Departamento adicionado com sucesso!', 'success');
-            }).catch(err => {
-                console.error("Falha ao adicionar departamento:", err);
-                showToast('Erro ao adicionar departamento.', 'error');
-            });
-        });
-        
-        console.log('[DEPT] Evento de clique anexado com sucesso ao botão.');
+    // 1. Encontrar o botão Salvar pelo novo ID.
+    const saveButton = document.getElementById('save-dept-btn');
 
-    } else {
-        console.error('%c[DEPT] ❌ ERRO CRÍTICO: Botão "dept-add-btn" não foi encontrado no DOM no momento da inicialização do módulo.', 'color: #e74c3c; font-weight: bold;');
+    // 2. Encontrar os campos de input.
+    const nameInput = document.getElementById('new-dept-name');
+    const descInput = document.getElementById('new-dept-desc');
+
+    // 3. Encontrar o container da lista.
+    const listContainer = document.getElementById('dept-list-container');
+
+    // 4. Verificar se os elementos essenciais foram encontrados.
+    if (!saveButton) {
+        console.error('[DEPT] ❌ CRÍTICO: O botão "save-dept-btn" não foi encontrado no DOM. A função não pode continuar.');
+        showToast('Erro crítico: Botão Salvar não encontrado.', 'error');
+        return;
     }
-    
-    try { 
-        renderDepartments();
-        console.log('[DEPT] Departamentos renderizados com sucesso na inicialização.');
-    } catch(e) { 
-        console.error('Erro ao renderizar departamentos na inicialização:', e); 
+    if (!nameInput || !descInput) {
+        console.error('[DEPT] ❌ CRÍTICO: Campos de nome ou descrição não encontrados.');
+        return;
+    }
+    if (!listContainer) {
+        console.error('[DEPT] ❌ CRÍTICO: Container da lista não encontrado.');
+        return;
+    }
+
+    console.log('[DEPT] ✅ Elementos essenciais (botão, inputs, lista) foram encontrados no DOM.');
+
+    // 5. Adicionar o event listener ao botão Salvar.
+    // Removemos qualquer listener antigo para garantir que não haja duplicatas.
+    saveButton.removeEventListener('click', handleSaveDepartment);
+    saveButton.addEventListener('click', handleSaveDepartment);
+
+    console.log('[DEPT] ✅ Event listener "click" adicionado ao botão "save-dept-btn".');
+
+    // 6. Carregar e renderizar a lista de departamentos existentes.
+    renderDepartmentList();
+}
+
+// Função chamada quando o botão Salvar é clicado.
+async function handleSaveDepartment() {
+    console.log('[DEPT] 🖱️ Botão "Salvar Departamento" foi clicado.');
+
+    const nameInput = document.getElementById('new-dept-name');
+    const descInput = document.getElementById('new-dept-desc');
+
+    const nome = nameInput.value.trim();
+    const descricao = descInput.value.trim();
+
+    if (!nome) {
+        showToast('O nome do departamento é obrigatório.', 'error');
+        nameInput.focus();
+        return;
+    }
+
+    console.log(`[DEPT] 📝 Tentando salvar novo departamento: "${nome}"`);
+    showToast('Salvando departamento...', 'info');
+
+    try {
+        // Simula uma chamada à API (substituir pela lógica do Supabase)
+        const newDepartment = await saveDepartmentToDatabase({ nome, descricao });
+
+        console.log('[DEPT] ✅ Departamento salvo com sucesso na "base de dados".', newDepartment);
+        showToast('Departamento salvo com sucesso!', 'success');
+
+        // Limpar os campos após o sucesso
+        nameInput.value = '';
+        descInput.value = '';
+
+        // Atualizar a lista na tela para mostrar o novo item
+        renderDepartmentList();
+
+    } catch (error) {
+        console.error('[DEPT] ❌ Erro ao salvar o departamento:', error);
+        showToast(`Erro ao salvar: ${error.message}`, 'error');
     }
 }
 
-// Função de debug
-window.debugDepartamentos = function() {
-    console.clear();
-    console.log('%c🔍 DEBUG DEPARTAMENTOS', 'color: #3498db; font-size: 16px; font-weight: bold;');
-    const raw = localStorage.getItem('topservice_departamentos_v1');
-    console.log('%c📦 Dados brutos no localStorage:', 'color: #2ecc71; font-weight: bold;');
-    console.log(raw ? JSON.parse(raw) : 'VAZIO');
-    
-    console.log('%c✅ Departamentos carregados via loadDepartments():', 'color: #f39c12; font-weight: bold;');
-    const loaded = loadDepartments();
-    console.table(loaded.map(d => ({
-        ID: d.id,
-        Nome: d.nome,
-        Descrição: d.description
-    })));
-    
-    return { raw: raw ? JSON.parse(raw) : [], loaded };
+// Função para renderizar a lista de departamentos.
+async function renderDepartmentList() {
+    const listContainer = document.getElementById('dept-list-container');
+    if (!listContainer) return;
+
+    listContainer.innerHTML = '<p style="text-align: center; color: #999;">Carregando lista...</p>';
+
+    try {
+        const departments = await fetchDepartmentsFromDatabase();
+        console.log(`[DEPT] 📊 ${departments.length} departamentos carregados.`);
+
+        if (departments.length === 0) {
+            listContainer.innerHTML = '<p style="text-align: center; color: #999;">Nenhum departamento cadastrado.</p>';
+            return;
+        }
+
+        const table = document.createElement('table');
+        table.className = 'table';
+        table.innerHTML = `
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Descrição</th>
+                    <th class="actions-column">Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${departments.map(dept => `
+                    <tr data-id="${dept.id}">
+                        <td>${dept.nome}</td>
+                        <td>${dept.descricao || ''}</td>
+                        <td class="actions-column">
+                            <button class="btn-icon btn-edit" onclick="handleEditDepartment('${dept.id}')" title="Editar">✏️</button>
+                            <button class="btn-icon btn-delete" onclick="handleDeleteDepartment('${dept.id}')" title="Excluir">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        `;
+        listContainer.innerHTML = '';
+        listContainer.appendChild(table);
+
+    } catch (error) {
+        console.error('[DEPT] ❌ Erro ao renderizar a lista de departamentos:', error);
+        listContainer.innerHTML = '<p style="text-align: center; color: #e74c3c;">Erro ao carregar a lista.</p>';
+    }
+}
+
+// Função para deletar um departamento.
+async function handleDeleteDepartment(id) {
+    if (!confirm('Tem certeza que deseja excluir este departamento?')) {
+        return;
+    }
+
+    console.log(`[DEPT] 🗑️ Tentando excluir departamento com ID: ${id}`);
+    showToast('Excluindo...', 'info');
+
+    try {
+        await deleteDepartmentFromDatabase(id);
+        showToast('Departamento excluído com sucesso!', 'success');
+        renderDepartmentList(); // Atualiza a lista
+    } catch (error) {
+        console.error('[DEPT] ❌ Erro ao excluir:', error);
+        showToast(`Erro ao excluir: ${error.message}`, 'error');
+    }
+}
+
+// Função de edição (placeholder).
+function handleEditDepartment(id) {
+    console.log(`[DEPT] ✏️ Editar departamento com ID: ${id}`);
+    showToast('Função de edição ainda não implementada.', 'info');
+    // Aqui, você poderia preencher o formulário com os dados do departamento
+}
+
+
+// ==================================================================
+// SIMULAÇÃO DE BANCO DE DADOS (Substituir por chamadas Supabase)
+// ==================================================================
+
+// Pega os dados do localStorage ou retorna um array vazio
+const getMockDatabase = () => {
+    try {
+        const data = localStorage.getItem('mock_departments_db');
+        return data ? JSON.parse(data) : [];
+    } catch (e) {
+        return [];
+    }
 };
 
-console.log('%c💡 Dica: Use window.debugDepartamentos() para verificar se os departamentos estão sendo salvos', 'color: #f39c12;');
+// Salva os dados no localStorage
+const saveMockDatabase = (db) => {
+    localStorage.setItem('mock_departments_db', JSON.stringify(db));
+};
+
+// Simula a busca de dados
+const fetchDepartmentsFromDatabase = () => {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const db = getMockDatabase();
+            resolve(db);
+        }, 300); // Simula latência de rede
+    });
+};
+
+// Simula o salvamento de um novo departamento
+const saveDepartmentToDatabase = (deptData) => {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            const db = getMockDatabase();
+            const newDept = {
+                id: `dept_${Date.now()}`, // ID único
+                ...deptData
+            };
+            db.push(newDept);
+            saveMockDatabase(db);
+            resolve(newDept);
+        }, 300);
+    });
+};
+
+// Simula a exclusão de um departamento
+const deleteDepartmentFromDatabase = (id) => {
+    return new Promise((resolve, reject) => {
+        setTimeout(() => {
+            let db = getMockDatabase();
+            const initialLength = db.length;
+            db = db.filter(dept => dept.id !== id);
+
+            if (db.length === initialLength) {
+                return reject(new Error('Departamento não encontrado.'));
+            }
+
+            saveMockDatabase(db);
+            resolve();
+        }, 300);
+    });
+};

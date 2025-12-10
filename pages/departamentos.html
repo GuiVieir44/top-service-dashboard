@@ -1,48 +1,39 @@
 <header class="header">
     <div class="header-title">
         <h1>Departamentos</h1>
-        <p>Gerencie os departamentos da empresa.</p>
+        <p>Gestão de departamentos e alocação de equipes</p>
     </div>
 </header>
 
-<section class="status-section">
-    <div class="status-card">
-        <h2>Adicionar Novo Departamento</h2>
-        <div class="status-content">
-            <div class="form-row">
-                <label class="form-field" style="flex: 1;">
-                    Nome do Departamento
-                    <input type="text" id="dept-name" class="form-input" placeholder="Ex: Financeiro, RH, TI">
-                </label>
-                <label class="form-field" style="flex: 2;">
-                    Descrição (Opcional)
-                    <input type="text" id="dept-desc" class="form-input" placeholder="Breve descrição das responsabilidades do departamento">
-                </label>
+<section class="content-section">
+    <div class="card">
+        <div class="card-header">
+            <h2>Adicionar Novo Departamento</h2>
+        </div>
+        <div class="card-body">
+            <div class="form-group">
+                <label for="new-dept-name">Nome do Departamento</label>
+                <input type="text" id="new-dept-name" class="form-input" placeholder="Ex: Limpeza, Portaria">
             </div>
-            <div class="form-row" style="justify-content: flex-end; margin-top: 15px;">
-                <button id="dept-add-btn" class="btn btn-primary">Adicionar Departamento</button>
+            <div class="form-group">
+                <label for="new-dept-desc">Descrição</label>
+                <input type="text" id="new-dept-desc" class="form-input" placeholder="Breve descrição das atividades">
+            </div>
+            <div class="form-actions">
+                <button id="save-dept-btn" class="btn btn-primary">
+                    <span class="icon">💾</span> Salvar Departamento
+                </button>
             </div>
         </div>
     </div>
-</section>
 
-<section class="status-section">
-    <div class="status-card">
-        <h2>Lista de Departamentos</h2>
-        <div class="status-content">
-            <div style="overflow-x: auto;">
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Nome</th>
-                            <th>Descrição</th>
-                            <th class="actions">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody id="dept-list-body">
-                        <!-- As linhas dos departamentos serão inseridas aqui pelo script -->
-                    </tbody>
-                </table>
+    <div class="card" style="margin-top: 20px;">
+        <div class="card-header">
+            <h2>Departamentos Cadastrados</h2>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive" id="dept-list-container">
+                <p style="text-align: center; color: #999; padding: 20px;">Carregando departamentos...</p>
             </div>
         </div>
     </div>
