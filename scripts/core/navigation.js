@@ -214,7 +214,8 @@ class NavigationSystem {
             if (mainContent) {
                 mainContent.innerHTML = pageContent;
                 this.updatePageTitle(pageId);
-                this.initializePageModule(pageId); // Chamar o inicializador do módulo
+                // A chamada agora é assíncrona
+                await this.initializePageModule(pageId);
             } else {
                 console.error('[NAV] ❌ Elemento .main-content não encontrado!');
             }
@@ -227,20 +228,39 @@ class NavigationSystem {
         }
     }
 
-    initializePageModule(pageId) {
-        if (this.moduleInitMap[pageId]) {
-            console.log(`[NAV] 🚀 Executando inicializador para ${pageId}`);
+    async initializePageModule(pageId) {
+        console.log(`[NAV] Tentando inicializar o módulo para a página: ${pageId}`);
+        const initFn = this.moduleInitMap[pageId];
+
+        if (typeof initFn === 'function') {
+            console.log(`[NAV] ✅ Encontrado inicializador para ${pageId}. Executando...`);
             try {
-                // Usar setTimeout para garantir que o DOM foi atualizado
-                setTimeout(() => {
-                    this.moduleInitMap[pageId]();
-                    console.log(`[NAV] ✅ Módulo ${pageId} inicializado.`);
-                }, 0);
+                // Await a small delay to ensure the DOM is fully painted after innerHTML update.
+                await new Promise(resolve => setTimeout(resolve, 50)); 
+                
+                initFn();
+                console.log(`[NAV] ✅ Módulo ${pageId} inicializado com sucesso.`);
+                
+                // Verificação extra para o módulo de departamentos
+                if (pageId === 'departamentos') {
+                    const btn = document.getElementById('dept-add-btn');
+                    if (btn) {
+                        console.log('[NAV] Verificação: Botão "dept-add-btn" encontrado no DOM.');
+                        if (btn.onclick) {
+                            console.log('[NAV] Verificação: O botão "dept-add-btn" TEM um evento onclick anexado.');
+                        } else {
+                            console.warn('[NAV] ⚠️ Verificação: O botão "dept-add-btn" foi encontrado, mas NÃO tem um evento onclick.');
+                        }
+                    } else {
+                        console.error('[NAV] ❌ Verificação: Botão "dept-add-btn" NÃO foi encontrado no DOM após a inicialização.');
+                    }
+                }
+
             } catch (e) {
-                console.error(`[NAV] ❌ Erro ao inicializar módulo para ${pageId}:`, e);
+                console.error(`[NAV] ❌ Erro catastrófico ao inicializar o módulo para ${pageId}:`, e);
             }
         } else {
-            console.log(`[NAV] 🤷‍♂️ Nenhum inicializador de módulo para ${pageId}`);
+            console.warn(`[NAV] 🤷‍♂️ Nenhum inicializador de módulo encontrado para ${pageId}.`);
         }
     }
 
