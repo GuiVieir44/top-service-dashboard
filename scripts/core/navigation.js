@@ -210,12 +210,12 @@ class NavigationSystem {
             return;
         }
 
-        // Verificar permissões de acesso (desabilitado temporariamente)
-        // if (typeof restrictPageAccess === 'function' && !restrictPageAccess(pageId)) {
-        //     console.warn(`🚫 Acesso restrito à página: ${pageId}`);
-        //     showToast('Você não tem permissão para acessar esta página.', 'error');
-        //     return;
-        // }
+        // Verificar permissões de acesso
+        if (typeof restrictPageAccess === 'function' && !restrictPageAccess(pageId)) {
+            console.warn(`🚫 Acesso restrito à página: ${pageId}`);
+            showToast('Você não tem permissão para acessar esta página.', 'error');
+            return;
+        }
 
         // Atualizar o estado visual do menu
         document.querySelectorAll('.nav-item').forEach(item => {

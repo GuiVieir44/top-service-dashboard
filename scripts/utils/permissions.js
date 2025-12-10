@@ -10,7 +10,7 @@ console.log('🔐 Sistema de permissões carregado');
  */
 function getCurrentSession() {
     try {
-        const sessionData = localStorage.getItem('topservice_session');
+        const sessionData = localStorage.getItem('topservice_session_v1');
         if (!sessionData) return null;
         return JSON.parse(sessionData);
     } catch (e) {

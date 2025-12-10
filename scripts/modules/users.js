@@ -104,10 +104,6 @@ async function authenticate(username, password) {
     return false;
 }
 
-function getCurrentSession() {
-    try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; }
-}
-
 function logout() {
     localStorage.removeItem(SESSION_KEY);
     // reload to update UI
