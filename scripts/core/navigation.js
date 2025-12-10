@@ -233,29 +233,30 @@ class NavigationSystem {
         const initFn = this.moduleInitMap[pageId];
 
         if (typeof initFn === 'function') {
-            console.log(`[NAV] ✅ Encontrado inicializador para ${pageId}. Executando...`);
-            try {
-                initFn();
-                console.log(`[NAV] ✅ Módulo ${pageId} inicializado com sucesso.`);
-                
-                // Verificação extra para o módulo de departamentos
-                if (pageId === 'departamentos') {
-                    const btn = document.getElementById('dept-add-btn');
-                    if (btn) {
-                        console.log('[NAV] Verificação: Botão "dept-add-btn" encontrado no DOM.');
-                        if (btn.onclick) {
-                            console.log('[NAV] Verificação: O botão "dept-add-btn" TEM um evento onclick anexado.');
+            console.log(`[NAV] ✅ Encontrado inicializador para ${pageId}. Agendando execução...`);
+            
+            // Usar requestAnimationFrame para garantir que o DOM foi renderizado
+            requestAnimationFrame(() => {
+                try {
+                    initFn();
+                    console.log(`[NAV] ✅ Módulo ${pageId} inicializado com sucesso via rAF.`);
+                    
+                    // Verificação extra para o módulo de departamentos
+                    if (pageId === 'departamentos') {
+                        const btn = document.getElementById('dept-add-btn');
+                        if (btn) {
+                            console.log('[NAV] Verificação Pós-rAF: Botão "dept-add-btn" encontrado no DOM.');
+                            // A verificação de 'onclick' não é mais confiável com addEventListener
                         } else {
-                            console.warn('[NAV] ⚠️ Verificação: O botão "dept-add-btn" foi encontrado, mas NÃO tem um evento onclick.');
+                            console.error('[NAV] ❌ Verificação Pós-rAF: Botão "dept-add-btn" NÃO foi encontrado no DOM.');
                         }
-                    } else {
-                        console.error('[NAV] ❌ Verificação: Botão "dept-add-btn" NÃO foi encontrado no DOM após a inicialização.');
                     }
-                }
 
-            } catch (e) {
-                console.error(`[NAV] ❌ Erro catastrófico ao inicializar o módulo para ${pageId}:`, e);
-            }
+                } catch (e) {
+                    console.error(`[NAV] ❌ Erro catastrófico ao inicializar o módulo para ${pageId} via rAF:`, e);
+                }
+            });
+
         } else {
             console.warn(`[NAV] 🤷‍♂️ Nenhum inicializador de módulo encontrado para ${pageId}.`);
         }
