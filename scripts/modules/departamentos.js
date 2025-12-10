@@ -314,13 +314,16 @@ function renderDepartments() {
 }
 
 // Expor funções globalmente para garantir acesso
-window.renderDepartments = renderDepartments;
-window.deleteDepartment = deleteDepartment;
-window.addDepartment = addDepartment;
-window.updateDepartment = updateDepartment;
-window.openEditDepartmentModal = openEditDepartmentModal;
-window.saveEditDepartment = saveEditDepartment;
-window.abrirCargosDepartamentoModal = abrirCargosDepartamentoModal;
+window.departmentModule = {
+    renderDepartments,
+    deleteDepartment,
+    addDepartment,
+    updateDepartment,
+    openEditDepartmentModal,
+    saveEditDepartment,
+    abrirCargosDepartamentoModal,
+    init: initDepartmentsModule
+};
 
 function abrirCargosDepartamentoModal(deptId, deptName) {
     var modalHTML = `
@@ -430,16 +433,23 @@ function abrirCargosDepartamentoModal(deptId, deptName) {
 }
 
 function initDepartmentsModule() {
-    console.log('[DEPT] Inicializando módulo Departamentos');
+    console.log('%c[DEPT] 🚀 initDepartmentsModule executado', 'color: #27ae60; font-weight: bold;');
     
-    var addBtn = document.getElementById('dept-add-btn');
+    const addBtn = document.getElementById('dept-add-btn');
+    
     if (addBtn) {
-        addBtn.onclick = function() {
-            var nameInput = document.getElementById('dept-name');
-            var descInput = document.getElementById('dept-desc');
+        console.log('[DEPT] Botão "dept-add-btn" encontrado. Anexando evento de clique.');
+        
+        // Remove qualquer listener antigo para evitar duplicidade
+        addBtn.onclick = null; 
+        
+        addBtn.addEventListener('click', function() {
+            console.log('[DEPT] Botão "Adicionar" clicado!');
+            const nameInput = document.getElementById('dept-name');
+            const descInput = document.getElementById('dept-desc');
             
-            var name = nameInput?.value?.trim();
-            var desc = descInput?.value?.trim() || '';
+            const name = nameInput?.value?.trim();
+            const desc = descInput?.value?.trim() || '';
 
             if (!name) {
                 showToast('Nome do departamento é obrigatório.', 'warning');
@@ -449,15 +459,24 @@ function initDepartmentsModule() {
             addDepartment(name, desc).then(() => {
                 if (nameInput) nameInput.value = '';
                 if (descInput) descInput.value = '';
+                showToast('Departamento adicionado com sucesso!', 'success');
+            }).catch(err => {
+                console.error("Falha ao adicionar departamento:", err);
+                showToast('Erro ao adicionar departamento.', 'error');
             });
-        };
+        });
+        
+        console.log('[DEPT] Evento de clique anexado com sucesso ao botão.');
+
+    } else {
+        console.error('%c[DEPT] ❌ ERRO CRÍTICO: Botão "dept-add-btn" não foi encontrado no DOM no momento da inicialização do módulo.', 'color: #e74c3c; font-weight: bold;');
     }
     
     try { 
         renderDepartments();
-        console.log('[DEPT] Departamentos renderizados com sucesso');
+        console.log('[DEPT] Departamentos renderizados com sucesso na inicialização.');
     } catch(e) { 
-        console.error('Erro ao renderizar departamentos:', e); 
+        console.error('Erro ao renderizar departamentos na inicialização:', e); 
     }
 }
 
