@@ -162,80 +162,94 @@ class NavigationSystem {
         console.log('🎯 NavigationSystem.init() iniciando...');
         this.setupEventListeners();
         console.log('✅ Event listeners configurados');
-        this.navigateTo('dashboard');
-        console.log('✅ Dashboard inicial mostrado');
+        // A página inicial é carregada via HTML, então apenas inicializamos o dashboard
+        this.initializePageModule('dashboard'); 
+        console.log('✅ Dashboard inicializado');
     }
 
     setupEventListeners() {
         console.log('🔧 setupEventListeners() INICIANDO');
-        
         const navLinks = document.querySelector('.nav-links');
-        console.log('   📍 navLinks encontrado?', !!navLinks);
-        
         if (!navLinks) {
             console.error('❌ .nav-links NÃO ENCONTRADO!');
             return;
         }
 
-        const buttons = navLinks.querySelectorAll('.nav-item');
-        console.log(`   📍 Encontrados ${buttons.length} botões .nav-item`);
-        buttons.forEach((btn, i) => {
-            console.log(`      ${i}: data-page="${btn.dataset.page}"`);
-        });
-
-        // Adiciona um listener para cada botão individualmente
-        buttons.forEach(btn => {
-            btn.addEventListener('click', (e) => {
+        // Usar delegação de eventos no container pai
+        navLinks.addEventListener('click', (e) => {
+            const navItem = e.target.closest('.nav-item');
+            if (navItem && !navItem.classList.contains('active')) {
                 e.preventDefault();
                 e.stopPropagation();
-                console.log('🖱️ CLIQUE DETECTADO em .nav-item');
-                const page = btn.dataset.page;
-                console.log(`   📍 btn.dataset.page = "${page}"`);
+                const page = navItem.dataset.page;
                 if (page) {
-                    console.log(`   🎯 NAVEGANDO PARA: ${page}`);
                     this.navigateTo(page);
                 }
-            });
+            }
         });
         
-        console.log('✅ setupEventListeners() COMPLETO');
+        console.log('✅ Event listener de delegação configurado em .nav-links');
     }
 
-    navigateTo(pageId) {
-        console.log(`\n📄 navigateTo INICIADO para: "${pageId}"`);
-
-        // Não fazer nada se já estiver na página (exceto para formulários)
-        if (this.currentPage === pageId && pageId !== 'funcionarios-novo') {
-            console.log(`⏭️  Já está na página ${pageId}, ignorando.`);
-            return;
-        }
-
-        // Verificar permissões de acesso
-        if (typeof restrictPageAccess === 'function' && !restrictPageAccess(pageId)) {
-            console.warn(`🚫 Acesso restrito à página: ${pageId}`);
-            showToast('Você não tem permissão para acessar esta página.', 'error');
-            return;
-        }
-
-        // Atualizar o estado visual do menu
-        document.querySelectorAll('.nav-item').forEach(item => {
-            item.classList.remove('active');
-            item.removeAttribute('aria-current');
-        });
+    async navigateTo(pageId, params = null) {
+        console.log(`[NAV] ➡️ navigateTo("${pageId}")`);
         
-        const activeBtn = document.querySelector(`.nav-item[data-page="${pageId}"]`);
-        if (activeBtn) {
-            activeBtn.classList.add('active');
-            activeBtn.setAttribute('aria-current', 'page');
+        if (!restrictPageAccess(pageId)) {
+            console.warn(`[NAV] 🚫 Acesso negado à página: ${pageId}`);
+            return;
         }
 
-        // Mostrar o conteúdo da página
-        this.showPageContent(pageId);
-
-        // Atualizar a página atual
         this.currentPage = pageId;
+        this.pendingParams = params;
 
-        console.log(`✅ Navegação concluída para: ${pageId}\n`);
+        // Atualiza o estado visual dos botões de navegação
+        document.querySelectorAll('.nav-item').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.page === pageId);
+            btn.setAttribute('aria-current', btn.dataset.page === pageId ? 'page' : 'false');
+        });
+
+        try {
+            const pageContent = await this.loadPageContent(pageId);
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.innerHTML = pageContent;
+                this.updatePageTitle(pageId);
+                this.initializePageModule(pageId); // Chamar o inicializador do módulo
+            } else {
+                console.error('[NAV] ❌ Elemento .main-content não encontrado!');
+            }
+        } catch (error) {
+            console.error(`[NAV] ❌ Erro ao carregar a página ${pageId}:`, error);
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.innerHTML = `<div class="error-page"><h2>Oops!</h2><p>Não foi possível carregar a página. Tente novamente.</p></div>`;
+            }
+        }
+    }
+
+    initializePageModule(pageId) {
+        if (this.moduleInitMap[pageId]) {
+            console.log(`[NAV] 🚀 Executando inicializador para ${pageId}`);
+            try {
+                // Usar setTimeout para garantir que o DOM foi atualizado
+                setTimeout(() => {
+                    this.moduleInitMap[pageId]();
+                    console.log(`[NAV] ✅ Módulo ${pageId} inicializado.`);
+                }, 0);
+            } catch (e) {
+                console.error(`[NAV] ❌ Erro ao inicializar módulo para ${pageId}:`, e);
+            }
+        } else {
+            console.log(`[NAV] 🤷‍♂️ Nenhum inicializador de módulo para ${pageId}`);
+        }
+    }
+
+    async loadPageContent(pageId) {
+        const response = await fetch(`pages/${pageId}.html`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return await response.text();
     }
 
     // Método legado para compatibilidade

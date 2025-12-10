@@ -197,6 +197,15 @@ function openEditDepartmentModal(id) {
                                 style="padding: 10px 20px; border: none; background: #3498db; color: white; border-radius: 6px; cursor: pointer; font-weight: 600;">
                             Salvar
                         </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+// NOVA FUNÇÃO: Salvar edição de departamento
 function saveEditDepartment(id) {
     var newName = document.getElementById('edit-dept-name').value.trim();
     var newDesc = document.getElementById('edit-dept-desc').value.trim();
@@ -219,16 +228,6 @@ function saveEditDepartment(id) {
         .catch(() => {
             showToast('Erro ao atualizar departamento', 'error');
         });
-}       return;
-    }
-    
-    var updated = updateDepartment(id, newName, newDesc);
-    if (updated) {
-        showToast('Departamento atualizado!', 'success');
-        document.getElementById('modal-edit-dept').remove();
-    } else {
-        showToast('Erro ao atualizar departamento', 'error');
-    }
 }
 
 function renderDepartments() {
@@ -425,6 +424,11 @@ function abrirCargosDepartamentoModal(deptId, deptName) {
             var option = document.createElement('option');
             option.value = c.id;
             option.textContent = c.nome;
+            cargoSelect.appendChild(option);
+        });
+    }
+}
+
 function initDepartmentsModule() {
     console.log('[DEPT] Inicializando módulo Departamentos');
     
@@ -446,16 +450,6 @@ function initDepartmentsModule() {
                 if (nameInput) nameInput.value = '';
                 if (descInput) descInput.value = '';
             });
-        };
-    }
-    
-    try { 
-        renderDepartments();
-        console.log('[DEPT] Departamentos renderizados com sucesso');
-    } catch(e) { 
-        console.error('Erro ao renderizar departamentos:', e); 
-    }
-}           document.getElementById('dept-desc').value = '';
         };
     }
     
