@@ -162,7 +162,7 @@ class NavigationSystem {
         console.log('🎯 NavigationSystem.init() iniciando...');
         this.setupEventListeners();
         console.log('✅ Event listeners configurados');
-        this.showPage('dashboard');
+        this.navigateTo('dashboard');
         console.log('✅ Dashboard inicial mostrado');
     }
 
@@ -1077,9 +1077,7 @@ class NavigationSystem {
         console.log('📍 showPage chamado:', pageId);
         // Store optional params (e.g., { editId: 3 }) so page init can use them
         this.pendingParams = params || null;
-        const navItem = document.querySelector(`[data-page="${pageId}"]`);
-        // Call handleNavigation even if there's no matching nav item (programmatic navigation)
-        this.handleNavigation(pageId, navItem || null);
+        this.navigateTo(pageId);
     }
 }
 
